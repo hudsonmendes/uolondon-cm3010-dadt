@@ -4,6 +4,9 @@ const bodyParser = require('body-parser');
 const mysql = require('mysql');
 const mustacheExpress = require('mustache-express');
 const fs = require('fs');
+const tdqm = require(`tqdm`);
+const csv = require("csv-parse");
+const tqdm = require('tqdm');
 
 // Initialise objects and declare constants
 const app = express();
@@ -25,9 +28,49 @@ app.set('view engine', 'html');
 app.set('views', './templates');
 app.use(bodyParser.urlencoded({ extended: true }));
 
+app.use(express.static('public'))
+
+app.get('/', function (req, res) {
+    res.render("index")
+});
+
+app.get('/etl', function (req, res) {
+    res.render("etl")
+});
+
 app.post('/etl', function (req, res) {
+    // https://www.gov.uk/government/statistical-data-sets/price-paid-data-downloads#using-or-publishing-our-price-paid-data
+    // check for "Address Data"
+    const csvHeader = {
+        price: 1, dateOfTransfer: 2,
+        postcode: 3, propertyType: 4,
+        oldOrNew: 5, leaseType: 6,
+        propertyNumberOrName: 7, buildingOrBlock: 8, streetName: 9,
+        locality: 10, townCity: 11, district: 12, county: 13,
+        ppdCategoryType: 14 }
+
+    const csvPropertyType = {
+        D: 'Detached',
+        S: 'Semi-detached',
+        T: 'Terraced',
+        F: 'Flats/Maisonettes',
+        O: 'Other'
+    }
+
+    const csvPropertyDuration = {
+        F: 'Freehold',
+        L: 'Leasehold',
+    }
+
     const filenames = fs.readdirSync(dataset.folder);
-    filenames.forEach(console.log);
+    for (let filename of tqdm(filenames)) {
+        filepath = `${dataset.folder}/${filename}`
+        fs.createReadStream(filepath)
+            .pipe(csv.parse())
+            .on("data", console.log)
+    }
+    
+    return res.redirect("etl")
 });
 
 app.get('/search', (req, res) => {
@@ -44,9 +87,5 @@ app.get('/search', (req, res) => {
         db.end()
     }
 })
-
-app.get('/', function (req, res) {
-    res.render("index")
-});
 
 app.listen(webPort, () => console.log('EMO app listening on port ' + webPort)); // success callback
