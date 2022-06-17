@@ -1,0 +1,13 @@
+{
+    "name": "climate-change-watch",
+    "version": "1.0.0",
+    "description": "Allows accessing historical information about daily temperatures of major cities around the globe",
+    "main": "index.js",
+    "author": "Hudson Leonardo MENDES (hlm12@student.london.ac.uk)",
+    "dependencies": {
+        "body-parser": "*",
+        "express": "*",
+        "mustache-express": "*",
+        "mysql": "*"
+    }
+}
