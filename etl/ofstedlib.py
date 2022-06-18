@@ -5,6 +5,6 @@ header = {"name": 4, "postcode": 9, "phase_of_education": 11, "overall_effective
 
 def transform(csvrow):
     doc = {k: csvrow[i].strip() for (k, i) in header.items()}
-    doc = float(doc["overall_effectiveness"])
-    doc = dateparser.parse(doc["ts"])
+    doc["overall_effectiveness"] = float(doc["overall_effectiveness"])
+    doc["ts"] = dateparser.parse(doc["ts"])
     return doc

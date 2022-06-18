@@ -16,27 +16,25 @@ def run():
     config = get_config()
     repositories = dblib.repositories(config)
 
-    if not args.pdd_off:
-        i = 0
-        pdd_record_loader = pdd_record_loader_factory(repositories)
-        pdd_csvrows = stream_csv_from(folderpath=config["dataset"]["pdd_folder"])
-        for pdd_csvrow in pdd_csvrows:
-            pdd_record_loader(pddlib.transform(pdd_csvrow))
-            if args.pdd_max_rows_each_file and args.pdd_max_rows_each_file > 0:
-                i += 1
-                if i >= args.pdd_max_rows_each_file:
-                    break
+    pdd_count = 0
+    pdd_record_loader = pdd_record_loader_factory(repositories)
+    pdd_csvrows = stream_csv_from(folderpath=config["dataset"]["pdd_folder"])
+    for pdd_csvrow in pdd_csvrows:
+        pdd_record_loader(pddlib.transform(pdd_csvrow))
+        if args.pdd_max_rows_each_file and args.pdd_max_rows_each_file > 0:
+            pdd_count += 1
+            if pdd_count >= args.pdd_max_rows_each_file:
+                break
 
-    if not args.ofsted_off:
-        i = 0
-        ofsted_record_loader = ofsted_record_loader_factory(repositories)
-        ofsted_csvrows = stream_csv_from(folderpath=config["dataset"]["ofsted_folder"])
-        for ofsted_csvrow in ofsted_csvrows:
-            ofsted_record_loader(ofstedlib.transform(ofsted_csvrow))
-            if args.ofsted_max_rows_each_file and args.ofsted_max_rows_each_file > 0:
-                i += 1
-                if i >= args.ofsted_max_rows_each_file:
-                    break
+    ofsted_count = 0
+    ofsted_record_loader = ofsted_record_loader_factory(repositories)
+    ofsted_csvrows = stream_csv_from(folderpath=config["dataset"]["ofsted_folder"], encoding='cp1252', header=True)
+    for ofsted_csvrow in ofsted_csvrows:
+        ofsted_record_loader(ofstedlib.transform(ofsted_csvrow))
+        if args.ofsted_max_rows_each_file and args.ofsted_max_rows_each_file > 0:
+            ofsted_count += 1
+            if ofsted_count >= args.ofsted_max_rows_each_file:
+                break
 
 
 def get_args() -> argparse.Namespace:
@@ -55,14 +53,16 @@ def get_config():
     return config
 
 
-def stream_csv_from(folderpath):
+def stream_csv_from(folderpath, encoding: str = 'utf-8', header: bool = False):
     total = 0
     for root, _, filenames in os.walk(folderpath):
         for filename in filenames:
             filepath = os.path.join(root, filename)
-            with open(filepath, "r", encoding="utf-8") as filehandle:
-                total = sum(1 for _ in filehandle)
-            with open(filepath, "r", encoding="utf-8") as filehandle:
+            with open(filepath, "r", encoding=encoding) as filehandle:
+                total = sum(1 for _ in filehandle) - (1 if header else 0)
+            with open(filepath, "r", encoding=encoding) as filehandle:
+                if header:
+                    next(filehandle, None)
                 spamreader = csv.reader(filehandle)
                 yield from tqdm.tqdm(spamreader, desc=filename, total=total)
 
@@ -119,12 +119,7 @@ def ofsted_record_loader_factory(r: dblib.Repositories):
                     postcode.county_id,
                 )
                 education_phase_id = r.education_phase.ensure_id(record["phase_of_education"])
-                r.rating.add(
-                    school_id,
-                    education_phase_id,
-                    record["overall_effectiveness"],
-                    record["ts"]
-                )
+                r.rating.add(school_id, education_phase_id, record["overall_effectiveness"], record["ts"])
                 r.commit()
 
     return load_record_to_db

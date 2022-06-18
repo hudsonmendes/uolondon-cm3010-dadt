@@ -80,10 +80,9 @@ class PostcodeRepository(DomainTableRepository):
         with self.conn.cursor() as cursor:
             cursor.execute(
                 """
-                SELECT county_id, municipality_id, district_id,
-                       locality_id, postgroup_id, postcode_id, name
+                SELECT county_id, municipality_id, district_id, locality_id, postgroup_id, id, name
                 FROM postcodes
-                WHERE name = ?""",
+                WHERE name=%s""",
                 (postcode,),
             )
             row = next(cursor, None)
