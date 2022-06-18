@@ -2,7 +2,7 @@ const fs = require('fs');
 const csv = require('csv-parse')
 
 // https://www.gov.uk/government/statistical-data-sets/price-paid-data-downloads#using-or-publishing-our-price-paid-data
-    // check for "Address Data"
+// check for "Address Data"
 const csvHeader = {
     price: 1, dateOfTransfer: 2,
     postcode: 3, propertyType: 4,
@@ -49,10 +49,10 @@ function transform(values) {
     }
 }
 
-async function load(row, db) {
-    const tenureRow = await db.query("SELECT id FROM tenures WHERE name =?", [row.tenureType])
-    if (!tenureRow._results.length)
-        await db.query("INSERT INTO tenures (name) VALUES (?)", [row.tenureType])
+async function load(record, db) {
+    const rows = db.query("SELECT id FROM tenures WHERE name =?", [record.tenureType])
+    if (!rows)
+        await db.query("INSERT INTO tenures (name) VALUES (?)", [record.tenureType])
 }
 
 module.exports = { extract, transform, load }

@@ -4,4 +4,4 @@ const get = (_, res) =>
 const post = (_, res) =>
     1/0
 
-modules.export = { get, post }
+    module.exports = { get, post }

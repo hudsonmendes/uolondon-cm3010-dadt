@@ -1,9 +1,11 @@
-const db = requre('../services/db')
+const fs = require('fs');
+const db = require('../services/db')
 const service = require('../services/etl')
 const dataPath = "/Users/hudsonmendes/Datasets/properties/property-prices";
 
-const get = (_, res) =>
-    res.render("etl");
+const get = (_, res) => {
+    return res.render("etl");
+}
 
 const post = async (_, res) => {
     try {
@@ -25,4 +27,4 @@ const post = async (_, res) => {
     }
 };
 
-modules.export = { get, post }
+module.exports = { get, post }

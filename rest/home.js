@@ -1,4 +1,5 @@
-const get = () =>
-    res.render("index")
+const get = () => {
+    return res.render("index")
+}
 
-modules.export = { get }
+module.exports = { get }

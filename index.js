@@ -1,5 +1,4 @@
 // Import libraries
-const fs = require('fs');
 const express = require('express');
 const mustacheExpress = require('mustache-express');
 const bodyParser = require('body-parser');
@@ -7,7 +6,7 @@ const bodyParser = require('body-parser');
 // load controllers
 const rest = {
     home: require('./rest/home'),
-    etl: require('./rest/home'),
+    etl: require('./rest/etl'),
     search: require('./rest/search')
 }
 
