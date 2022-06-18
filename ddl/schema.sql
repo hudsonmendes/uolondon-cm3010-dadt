@@ -84,7 +84,7 @@ CREATE TABLE `postcodes` (
     municipality_id             INT             NOT NULL,
     district_id                 INT             NOT NULL,
     postgroup_id                INT             NOT NULL,
-    name                        VARCHAR(5)      NOT NULL,
+    name                        VARCHAR(10)      NOT NULL,
     CONSTRAINT pk_postcodes PRIMARY KEY (`id`),
     CONSTRAINT fk_postcodes_postgroup_id FOREIGN KEY (`postgroup_id`) REFERENCES `postgroups` (`id`),
     CONSTRAINT fk_postcodes_locality_id FOREIGN KEY (`locality_id`) REFERENCES `localities` (`id`),

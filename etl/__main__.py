@@ -17,22 +17,32 @@ def run():
     repositories = dblib.repositories(config)
 
     if not args.pdd_off:
+        i = 0
         pdd_record_loader = pdd_record_loader_factory(repositories)
         pdd_csvrows = stream_csv_from(folderpath=config["dataset"]["pdd_folder"])
         for pdd_csvrow in pdd_csvrows:
             pdd_record_loader(pddlib.transform(pdd_csvrow))
+            if args.pdd_max_rows_each_file and args.pdd_max_rows_each_file > 0:
+                i += 1
+                if i >= args.pdd_max_rows_each_file:
+                    break
 
     if not args.ofsted_off:
+        i = 0
         ofsted_record_loader = ofsted_record_loader_factory(repositories)
         ofsted_csvrows = stream_csv_from(folderpath=config["dataset"]["ofsted_folder"])
         for ofsted_csvrow in ofsted_csvrows:
             ofsted_record_loader(ofstedlib.transform(ofsted_csvrow))
+            if args.ofsted_max_rows_each_file and args.ofsted_max_rows_each_file > 0:
+                i += 1
+                if i >= args.ofsted_max_rows_each_file:
+                    break
 
 
 def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--pdd_off", action="store_false", default=True, help="Prevent ETL for Price Paid Data")
-    parser.add_argument("--ofsted_off", action="store_false", default=True, help="Prevent ETL for Ofsted Statistics")
+    parser.add_argument("--pdd_max_rows_each_file", type=int, default=None, help="How many records to process")
+    parser.add_argument("--ofsted_max_rows_each_file", type=int, default=None, help="How many records to process")
     return parser.parse_args()
 
 
@@ -69,7 +79,7 @@ def pdd_record_loader_factory(r: dblib.Repositories):
                 county_id, municipality_id, district_id, locality_id, record["postgroup"]
             )
             postcode_id = r.postcode.ensure_id(
-                county_id, municipality_id, district_id, locality_id, postcode_id, record["postcode"]
+                county_id, municipality_id, district_id, locality_id, postgroup_id, record["postcode"]
             )
             property_id = r.property.ensure_id(
                 record["property_number_or_name"],
