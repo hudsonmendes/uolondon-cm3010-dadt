@@ -15,7 +15,10 @@
             "request": "launch",
             "program": "${workspaceFolder}/etl",
             "console": "integratedTerminal",
-            "justMyCode": true
+            "justMyCode": true,
+            "args": [
+                "--pdd_off"
+            ]
         },
     ]
 }
