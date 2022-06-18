@@ -1,0 +1,2 @@
+def transform(csvrow):
+    return {}

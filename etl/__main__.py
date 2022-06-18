@@ -1,3 +1,4 @@
+import argparse
 import configparser
 import csv
 import os
@@ -7,15 +8,32 @@ import tqdm
 
 import dblib
 import pddlib
+import ofstedlib
 
 
 def run():
+    args = get_args()
     config = get_config()
-    csvreader = stream_csv_from(folderpath=config["dataset"]["folder"])
     repositories = dblib.repositories(config)
-    load_record_to_db = record_loader(repositories)
-    for csvrow in csvreader:
-        load_record_to_db(transform_line_to_pdd(csvrow))
+
+    if not args.pdd_off:
+        pdd_record_loader = pdd_record_loader_factory(repositories)
+        pdd_csvrows = stream_csv_from(folderpath=config["dataset"]["pdd_folder"])
+        for pdd_csvrow in pdd_csvrows:
+            pdd_record_loader(pddlib.transform(pdd_csvrow))
+
+    if not args.ofsted_off:
+        ofsted_record_loader = ofsted_record_loader_factory(repositories)
+        ofsted_csvrows = stream_csv_from(folderpath=config["dataset"]["ofsted_folder"])
+        for ofsted_csvrow in ofsted_csvrows:
+            ofsted_record_loader(ofstedlib.transform(ofsted_csvrow))
+
+
+def get_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--pdd_off", action="store_false", default=True, help="Prevent ETL for Price Paid Data")
+    parser.add_argument("--ofsted_off", action="store_false", default=True, help="Prevent ETL for Ofsted Statistics")
+    return parser.parse_args()
 
 
 def get_config():
@@ -39,11 +57,7 @@ def stream_csv_from(folderpath):
                 yield from tqdm.tqdm(spamreader, desc=filename, total=total)
 
 
-def transform_line_to_pdd(csvrow):
-    return pddlib.transform(csvrow)
-
-
-def record_loader(r: dblib.Repositories):
+def pdd_record_loader_factory(r: dblib.Repositories):
     def load_record_to_db(record):
         if record:
             tenure_id = r.tenure.ensure_id(record["tenure_type"])
@@ -72,6 +86,10 @@ def record_loader(r: dblib.Repositories):
             r.commit()
 
     return load_record_to_db
+
+
+def ofsted_record_loader_factory(r: dblib.Repositories):
+    return lambda x: None
 
 
 if __name__ == "__main__":
