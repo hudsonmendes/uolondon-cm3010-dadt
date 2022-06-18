@@ -6,12 +6,10 @@
     "author": "Hudson Leonardo MENDES (hlm12@student.london.ac.uk)",
     "dependencies": {
         "body-parser": "*",
+        "csv-parse": "*",
         "express": "*",
         "mustache-express": "*",
-        "mysql": "*"
-    },
-    "devDependencies": {
-        "csv": "^6.1.3",
-        "tqdm": "^2.0.3"
+        "mysql": "*",
+        "progress-stream": "^2.0.0"
     }
 }
