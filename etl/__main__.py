@@ -29,8 +29,6 @@ def run():
     ofsted_count = 0
     ofsted_record_loader = ofsted_record_loader_factory(repositories)
     ofsted_csvrows = stream_csv_from(folderpath=config["dataset"]["ofsted_folder"], encoding="cp1252", header=True)
-    for i in range(21950):
-        next(ofsted_csvrows, None)
     for ofsted_csvheader, ofsted_csvrow in ofsted_csvrows:
         ofsted_record_loader(ofstedlib.transform(ofsted_csvheader, ofsted_csvrow))
         if args.ofsted_max_rows_each_file and args.ofsted_max_rows_each_file > 0:
