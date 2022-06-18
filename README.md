@@ -8,9 +8,5 @@ If for any reason the database does not have the data, please re-run the followi
 to reset the database installation.
 
 ```
-python3 -m pip install -U pip virtualenv
-python3 -m virtualenv etl/venv
-source etl/venv/bin/activate
-python3 -m pip install -r etl/requirements.txt
-python3 -m ./etl
+sh ./run_install.sh
 ```
