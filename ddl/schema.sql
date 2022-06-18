@@ -1,17 +1,18 @@
 CREATE SCHEMA `region_home_school` ;
 
-DROP TABLE `transactions`;
+DROP TABLE `property_transactions`;
 DROP TABLE `properties`;
+DROP TABLE `localities`;
 DROP TABLE `municipalities`;
 DROP TABLE `districts`;
 DROP TABLE `counties`;
-DROP TABLE `leasetypes`;
+DROP TABLE `tenures`;
 
-CREATE TABLE `leasetypes` (
+CREATE TABLE `tenures` (
     id                          INT             NOT NULL    AUTO_INCREMENT,
     name                        VARCHAR(120)    NOT NULL,
-    CONSTRAINT pk_leasetypes PRIMARY KEY (`id`),
-    INDEX ix_leasetypes_name (`name`)
+    CONSTRAINT pk_tenures PRIMARY KEY (`id`),
+    INDEX ix_tenures_name (`name`)
 );
 
 CREATE TABLE `counties` (
@@ -71,9 +72,10 @@ CREATE TABLE `property_transactions` (
     id                          INT             NOT NULL    AUTO_INCREMENT,
     property_id                 INT             NOT NULL,
     new_build                   BOOLEAN         NOT NULL,
-    lease_type                  INT             NOT NULL,
+    tenure_id              INT             NOT NULL,
     price                       DECIMAL         NOT NULL,
     ts                          timestamp       NOT NULL,
     CONSTRAINT pk_property_transactions PRIMARY KEY (`id`),
+    CONSTRAINT fk_property_transactions_tenure FOREIGN KEY (`tenure_id`) REFERENCES `tenures` (`id`),
     CONSTRAINT fk_property_transactions_property_id FOREIGN KEY (`property_id`) REFERENCES `properties` (`id`)
 );
