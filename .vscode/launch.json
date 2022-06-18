@@ -17,7 +17,7 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": [
-                "--pdd_max_rows_each_file", "1000",
+                "--pdd_max_rows_each_file", "-1",
                 "--ofsted_max_rows_each_file", "-1"
             ]
         },

@@ -19,7 +19,7 @@ def run():
     pdd_count = 0
     pdd_record_loader = pdd_record_loader_factory(repositories)
     pdd_csvrows = stream_csv_from(folderpath=config["dataset"]["pdd_folder"])
-    for pdd_csvrow in pdd_csvrows:
+    for _, pdd_csvrow in pdd_csvrows:
         pdd_record_loader(pddlib.transform(pdd_csvrow))
         if args.pdd_max_rows_each_file and args.pdd_max_rows_each_file > 0:
             pdd_count += 1
@@ -28,9 +28,11 @@ def run():
 
     ofsted_count = 0
     ofsted_record_loader = ofsted_record_loader_factory(repositories)
-    ofsted_csvrows = stream_csv_from(folderpath=config["dataset"]["ofsted_folder"], encoding='cp1252', header=True)
-    for ofsted_csvrow in ofsted_csvrows:
-        ofsted_record_loader(ofstedlib.transform(ofsted_csvrow))
+    ofsted_csvrows = stream_csv_from(folderpath=config["dataset"]["ofsted_folder"], encoding="cp1252", header=True)
+    for i in range(21950):
+        next(ofsted_csvrows, None)
+    for ofsted_csvheader, ofsted_csvrow in ofsted_csvrows:
+        ofsted_record_loader(ofstedlib.transform(ofsted_csvheader, ofsted_csvrow))
         if args.ofsted_max_rows_each_file and args.ofsted_max_rows_each_file > 0:
             ofsted_count += 1
             if ofsted_count >= args.ofsted_max_rows_each_file:
@@ -53,18 +55,23 @@ def get_config():
     return config
 
 
-def stream_csv_from(folderpath, encoding: str = 'utf-8', header: bool = False):
-    total = 0
+def stream_csv_from(folderpath, encoding: str = "utf-8", header: bool = False):
+    csvheader = None
+    total = 0 
     for root, _, filenames in os.walk(folderpath):
         for filename in filenames:
-            filepath = os.path.join(root, filename)
-            with open(filepath, "r", encoding=encoding) as filehandle:
-                total = sum(1 for _ in filehandle) - (1 if header else 0)
-            with open(filepath, "r", encoding=encoding) as filehandle:
-                if header:
-                    next(filehandle, None)
-                spamreader = csv.reader(filehandle)
-                yield from tqdm.tqdm(spamreader, desc=filename, total=total)
+            if filename.endswith(".csv"):
+                filepath = os.path.join(root, filename)
+                with open(filepath, "r", encoding=encoding) as filehandle:
+                    total = sum(1 for _ in filehandle) - (1 if header else 0)
+                with open(filepath, "r", encoding=encoding) as filehandle:
+                    spamreader = csv.reader(filehandle)
+                    if header:
+                        csvheader = next(spamreader, None)
+                        while not csvheader or not csvheader[0]:
+                            csvheader = next(spamreader, None)
+                    for csvrow in tqdm.tqdm(spamreader, desc=filename, total=total):
+                        yield csvheader, csvrow
 
 
 def pdd_record_loader_factory(r: dblib.Repositories):
