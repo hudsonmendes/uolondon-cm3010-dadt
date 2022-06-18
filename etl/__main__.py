@@ -65,8 +65,12 @@ def pdd_record_loader_factory(r: dblib.Repositories):
             municipality_id = r.municipality.ensure_id(county_id, record["town_or_city"])
             district_id = r.district.ensure_id(county_id, municipality_id, record["district"])
             locality_id = r.locality.ensure_id(county_id, municipality_id, district_id, record["locality"])
-            postgroup_id = r.postgroup.ensure_id(county_id, municipality_id, district_id, locality_id, record["postgroup"])
-            postcode_id = r.postcode.ensure_id(county_id, municipality_id, district_id, locality_id, postcode_id, record["postcode"])
+            postgroup_id = r.postgroup.ensure_id(
+                county_id, municipality_id, district_id, locality_id, record["postgroup"]
+            )
+            postcode_id = r.postcode.ensure_id(
+                county_id, municipality_id, district_id, locality_id, postcode_id, record["postcode"]
+            )
             property_id = r.property.ensure_id(
                 record["property_number_or_name"],
                 record["building_or_block"],
@@ -93,29 +97,25 @@ def pdd_record_loader_factory(r: dblib.Repositories):
 def ofsted_record_loader_factory(r: dblib.Repositories):
     def load_record_to_db(record):
         if record:
-            county_id = r.county.ensure_id(record["county"])
-            municipality_id = r.municipality.ensure_id(county_id, record["town_or_city"])
-            district_id = r.district.ensure_id(county_id, municipality_id, record["district"])
-            locality_id = r.locality.ensure_id(county_id, municipality_id, district_id, record["locality"])
-            property_id = r.property.ensure_id(
-                record["property_number_or_name"],
-                record["building_or_block"],
-                record["street_name"],
-                record["postgroup"],
-                record["postcode"],
-                locality_id,
-                district_id,
-                municipality_id,
-                county_id,
-            )
-            r.transaction.add(
-                property_id=property_id,
-                tenure_id=tenure_id,
-                price=record["price"],
-                new_build=record["new_build"],
-                ts=record["ts"],
-            )
-            r.commit()
+            postcode = r.postcode.find_by_postcode(record["postcode"])
+            if postcode:
+                school_id = r.school.ensure_id(
+                    record["name"],
+                    postcode.postcode_id,
+                    postcode.postgroup_id,
+                    postcode.locality_id,
+                    postcode.district_id,
+                    postcode.municipality_id,
+                    postcode.county_id,
+                )
+                education_phase_id = r.education_phase.ensure_id(record["phase_of_education"])
+                r.rating.add(
+                    school_id,
+                    education_phase_id,
+                    record["overall_effectiveness"],
+                    record["ts"]
+                )
+                r.commit()
 
     return load_record_to_db
 

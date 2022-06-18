@@ -26,9 +26,12 @@ class Repositories:
     municipality: "DomainTableRepository"
     locality: "DomainTableRepository"
     postgroup: "DomainTableRepository"
-    postcode: "DomainTableRepository"
+    postcode: "PostcodeRepository"
     property: "DomainTableRepository"
+    school: "DomainTableRepository"
+    education_phase: "DomainTableRepository"
     transaction: "TransactionRepository"
+    rating: "RatingRepository"
 
     def commit(self):
         self.conn.commit()
@@ -110,6 +113,17 @@ class TransactionRepository(BaseRepository):
             cursor.execute(sql, params)
 
 
+class RatingRepository(BaseRepository):
+    def add(self, school_id: int, education_phase_id: int, rating: float, ts: datetime):
+        with self.conn.cursor() as cursor:
+            sql = """
+            INSERT INTO school_ratings (school_id, education_phase_id, rating, ts)
+            VALUES (%s, %s, %s, %s)
+            """
+            params = (school_id, education_phase_id, rating, ts)
+            cursor.execute(sql, params)
+
+
 def repositories(config) -> Repositories:
     conn = mysql.connect(**config["mysql"])
     return Repositories(
@@ -140,5 +154,24 @@ def repositories(config) -> Repositories:
                 "county_id",
             ],
         ),
+        school=DomainTableRepository(
+            conn=conn,
+            table="schools",
+            fields=[
+                "name",
+                "postcode_id",
+                "postgroup_id",
+                "locality_id",
+                "district_id",
+                "municipality_id",
+                "county_id",
+            ],
+        ),
+        education_phase=DomainTableRepository(
+            conn=conn,
+            table="education_phases",
+            fields=["name"],
+        ),
         transaction=TransactionRepository(conn=conn),
+        rating=RatingRepository(conn=conn),
     )
