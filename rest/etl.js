@@ -1,6 +1,6 @@
 const fs = require('fs');
-const db = require('../services/db')
-const service = require('../services/etl')
+const db = require('../domain/infra/db')
+const service = require('../domain/services/etl')
 const dataPath = "/Users/hudsonmendes/Datasets/properties/property-prices";
 
 const get = (_, res) => {
@@ -15,7 +15,7 @@ const post = async (_, res) => {
             const filecsv = service.extract(filepath)
             for await (const csvline of filecsv) {
                 const record = service.transform(csvline)
-                await service.load(record, db)
+                await service.load(db, record)
             }
             res.redirect("etl");
         }

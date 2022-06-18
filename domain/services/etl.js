@@ -49,10 +49,10 @@ function transform(values) {
     }
 }
 
-async function load(record, db) {
-    const rows = db.query("SELECT id FROM tenures WHERE name =?", [record.tenureType])
-    if (!rows)
-        await db.query("INSERT INTO tenures (name) VALUES (?)", [record.tenureType])
+async function load(db, record) {
+    const tenures = await db.tenure.findByName(record.tenureType)
+    let tenureId = tenures[0] ? tenures.length : null
+    if (!tenureId) db.tenure.create(record.tenureType)
 }
 
 module.exports = { extract, transform, load }
