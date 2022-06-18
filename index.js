@@ -46,7 +46,7 @@ app.post('/etl', function (req, res) {
         postcode: 3, propertyType: 4,
         oldOrNew: 5, leaseType: 6,
         propertyNumberOrName: 7, buildingOrBlock: 8, streetName: 9,
-        locality: 10, townCity: 11, district: 12, county: 13,
+        locality: 10, townOrCity: 11, district: 12, county: 13,
         ppdCategoryType: 14 }
 
     const csvPropertyType = {
