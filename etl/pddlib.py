@@ -34,6 +34,12 @@ tenure_type = {
 def transform(csvrow):
     doc = {k: csvrow[i] for (k, i) in header.items()}
     if doc["ppd_category_type"] == "A":
-        doc["property_type"] = property_type.get(doc["property_type"], property_type.get("O"))
-        doc["tenure_type"] = property_type.get(doc["tenure_type"], property_type.get("U"))
+        doc["property_type"] = property_type.get(doc["property_type"], None)
+        if doc["property_type"] is None:
+            doc["property_type"] = property_type.get("O")
+        doc["tenure_type"] = property_type.get(doc["tenure_type"], None)
+        if doc["tenure_type"] is None:
+            doc["tenure_type"] = tenure_type.get("U")
+        if not doc["locality"]:
+            doc["locality"] = doc["district"]
         return doc

@@ -12,10 +12,10 @@ import pddlib
 def run():
     config = get_config()
     csvreader = stream_csv_from(folderpath=config["dataset"]["folder"])
+    repositories = dblib.repositories(config)
+    load_record_to_db = record_loader(repositories)
     for csvrow in csvreader:
-        record = transform_line_to_pdd(csvrow)
-        if record:
-            load_record_to_db(record)
+        load_record_to_db(transform_line_to_pdd(csvrow))
 
 
 def get_config():
@@ -43,9 +43,17 @@ def transform_line_to_pdd(csvrow):
     return pddlib.transform(csvrow)
 
 
-def load_record_to_db(record):
-    tenure_id = dblib.ensure_tenure(name=record["tenure_type"])
-    print(f"Tenure: #{tenure_id}")
+def record_loader(r: dblib.Repositories):
+    def load_record_to_db(record):
+        if record:
+            tenure_id = r.tenure.ensure_id(record["tenure_type"])
+            county_id = r.county.ensure_id(record["county"])
+            municipality_id = r.municipality.ensure_id(county_id, record["town_or_city"])
+            district_id = r.district.ensure_id(county_id, municipality_id, record["district"])
+            locality_id = r.locality.ensure_id(county_id, municipality_id, district_id, record["locality"])
+            r.commit()
+
+    return load_record_to_db
 
 
 if __name__ == "__main__":
