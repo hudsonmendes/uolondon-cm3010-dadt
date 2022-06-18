@@ -1,0 +1,21 @@
+{
+    "configurations": [
+        {
+            "name": "web",
+            "program": "${workspaceFolder}/web/index.js",
+            "request": "launch",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node"
+        },
+        {
+            "name": "etl",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/etl",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+    ]
+}
