@@ -51,6 +51,24 @@ def record_loader(r: dblib.Repositories):
             municipality_id = r.municipality.ensure_id(county_id, record["town_or_city"])
             district_id = r.district.ensure_id(county_id, municipality_id, record["district"])
             locality_id = r.locality.ensure_id(county_id, municipality_id, district_id, record["locality"])
+            property_id = r.property.ensure_id(
+                record["property_number_or_name"],
+                record["building_or_block"],
+                record["street_name"],
+                record["postgroup"],
+                record["postcode"],
+                locality_id,
+                district_id,
+                municipality_id,
+                county_id,
+            )
+            r.transaction.add(
+                property_id=property_id,
+                tenure_id=tenure_id,
+                price=record["price"],
+                new_build=record["new_build"],
+                ts=record["ts"],
+            )
             r.commit()
 
     return load_record_to_db

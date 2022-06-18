@@ -1,6 +1,7 @@
 from abc import ABC
 from dataclasses import dataclass
 from typing import List, Optional
+from datetime import datetime
 
 import mysql.connector as mysql
 
@@ -13,6 +14,8 @@ class Repositories:
     district: "DomainTableRepository"
     municipality: "DomainTableRepository"
     locality: "DomainTableRepository"
+    property: "DomainTableRepository"
+    transaction: "TransactionRepository"
 
     def commit(self):
         self.conn.commit()
@@ -49,6 +52,17 @@ class DomainTableRepository(BaseRepository):
             return row[0] if row else None
 
 
+class TransactionRepository(BaseRepository):
+    def add(self, property_id: int, tenure_id: int, price: float, new_build: bool, ts: datetime):
+        with self.conn.cursor() as cursor:
+            sql = """
+            INSERT INTO property_transactions (property_id, tenure_id, price, new_build, ts)
+            VALUES (%s, %s, %s, %s, %s)
+            """
+            params = (property_id, tenure_id, price, new_build, ts)
+            cursor.execute(sql, params)
+
+
 def repositories(config) -> Repositories:
     conn = mysql.connect(**config["mysql"])
     return Repositories(
@@ -60,4 +74,20 @@ def repositories(config) -> Repositories:
         locality=DomainTableRepository(
             conn=conn, table="localities", fields=["county_id", "municipality_id", "district_id", "name"]
         ),
+        property=DomainTableRepository(
+            conn=conn,
+            table="properties",
+            fields=[
+                "property_number_or_name",
+                "building_or_block",
+                "street_name",
+                "postgroup",
+                "postcode",
+                "locality_id",
+                "district_id",
+                "municipality_id",
+                "county_id",
+            ],
+        ),
+        transaction=TransactionRepository(conn=conn),
     )

@@ -71,7 +71,7 @@ CREATE TABLE `properties` (
     CONSTRAINT fk_properties_municipality_id FOREIGN KEY (`municipality_id`) REFERENCES `municipalities` (`id`),
     CONSTRAINT fk_properties_district_id FOREIGN KEY (`district_id`) REFERENCES `districts` (`id`),
     CONSTRAINT fk_properties_county_id FOREIGN KEY (`county_id`) REFERENCES `counties` (`id`),
-    UNIQUE INDEX ix_properties_address (`property_number_or_name`, `building_or_block`, `street_name`, `postcode`, `locality_id`, `municipality_id`, `district_id`, `county_id`),
+    UNIQUE INDEX ix_properties_address (`property_number_or_name`, `building_or_block`, `street_name`, `postgroup`, `postcode`, `locality_id`, `municipality_id`, `district_id`, `county_id`),
     INDEX ix_property_postgroup (`postgroup`)
 );
 
@@ -79,7 +79,7 @@ CREATE TABLE `property_transactions` (
     id                          INT             NOT NULL    AUTO_INCREMENT,
     property_id                 INT             NOT NULL,
     new_build                   BOOLEAN         NOT NULL,
-    tenure_id              INT             NOT NULL,
+    tenure_id                   INT             NOT NULL,
     price                       DECIMAL         NOT NULL,
     ts                          timestamp       NOT NULL,
     CONSTRAINT pk_property_transactions PRIMARY KEY (`id`),
