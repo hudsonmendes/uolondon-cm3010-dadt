@@ -65,6 +65,38 @@ def pdd_record_loader_factory(r: dblib.Repositories):
             municipality_id = r.municipality.ensure_id(county_id, record["town_or_city"])
             district_id = r.district.ensure_id(county_id, municipality_id, record["district"])
             locality_id = r.locality.ensure_id(county_id, municipality_id, district_id, record["locality"])
+            postgroup_id = r.postgroup.ensure_id(county_id, municipality_id, district_id, locality_id, record["postgroup"])
+            postcode_id = r.postcode.ensure_id(county_id, municipality_id, district_id, locality_id, postcode_id, record["postcode"])
+            property_id = r.property.ensure_id(
+                record["property_number_or_name"],
+                record["building_or_block"],
+                record["street_name"],
+                postcode_id,
+                postgroup_id,
+                locality_id,
+                district_id,
+                municipality_id,
+                county_id,
+            )
+            r.transaction.add(
+                property_id=property_id,
+                tenure_id=tenure_id,
+                price=record["price"],
+                new_build=record["new_build"],
+                ts=record["ts"],
+            )
+            r.commit()
+
+    return load_record_to_db
+
+
+def ofsted_record_loader_factory(r: dblib.Repositories):
+    def load_record_to_db(record):
+        if record:
+            county_id = r.county.ensure_id(record["county"])
+            municipality_id = r.municipality.ensure_id(county_id, record["town_or_city"])
+            district_id = r.district.ensure_id(county_id, municipality_id, record["district"])
+            locality_id = r.locality.ensure_id(county_id, municipality_id, district_id, record["locality"])
             property_id = r.property.ensure_id(
                 record["property_number_or_name"],
                 record["building_or_block"],
@@ -86,10 +118,6 @@ def pdd_record_loader_factory(r: dblib.Repositories):
             r.commit()
 
     return load_record_to_db
-
-
-def ofsted_record_loader_factory(r: dblib.Repositories):
-    return lambda x: None
 
 
 if __name__ == "__main__":

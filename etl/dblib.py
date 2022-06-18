@@ -7,6 +7,17 @@ import mysql.connector as mysql
 
 
 @dataclass(frozen=True)
+class Postcode:
+    county_id: int
+    municipality_id: int
+    district_id: int
+    locality_id: int
+    postgroup_id: int
+    postcode_id: int
+    name: str
+
+
+@dataclass(frozen=True)
 class Repositories:
     conn: mysql.MySQLConnection
     tenure: "DomainTableRepository"
@@ -14,6 +25,8 @@ class Repositories:
     district: "DomainTableRepository"
     municipality: "DomainTableRepository"
     locality: "DomainTableRepository"
+    postgroup: "DomainTableRepository"
+    postcode: "DomainTableRepository"
     property: "DomainTableRepository"
     transaction: "TransactionRepository"
 
@@ -52,6 +65,40 @@ class DomainTableRepository(BaseRepository):
             return row[0] if row else None
 
 
+class PostcodeRepository(DomainTableRepository):
+    def __init__(self, conn: mysql.MySQLConnection) -> None:
+        super(PostcodeRepository, self).__init__(
+            conn=conn,
+            table="postcodes",
+            fields=["county_id", "municipality_id", "district_id", "locality_id", "postgroup_id", "name"],
+        )
+
+    def find_by_postcode(self, postcode: str) -> Optional[Postcode]:
+        with self.conn.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT county_id, municipality_id, district_id,
+                       locality_id, postgroup_id, postcode_id, name
+                FROM postcodes
+                WHERE name = ?""",
+                (postcode,),
+            )
+            row = next(cursor, None)
+            return (
+                Postcode(
+                    county_id=row[0],
+                    municipality_id=row[1],
+                    district_id=row[2],
+                    locality_id=row[3],
+                    postgroup_id=row[4],
+                    postcode_id=row[5],
+                    name=row[6],
+                )
+                if row
+                else None
+            )
+
+
 class TransactionRepository(BaseRepository):
     def add(self, property_id: int, tenure_id: int, price: float, new_build: bool, ts: datetime):
         with self.conn.cursor() as cursor:
@@ -74,6 +121,10 @@ def repositories(config) -> Repositories:
         locality=DomainTableRepository(
             conn=conn, table="localities", fields=["county_id", "municipality_id", "district_id", "name"]
         ),
+        postgroup=DomainTableRepository(
+            conn=conn, table="postgroups", fields=["county_id", "municipality_id", "district_id", "locality_id", "name"]
+        ),
+        postcode=PostcodeRepository(conn=conn),
         property=DomainTableRepository(
             conn=conn,
             table="properties",
