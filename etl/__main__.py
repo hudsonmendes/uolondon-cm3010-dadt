@@ -17,10 +17,19 @@ def run():
 
     pdd_csvrows = stream_csv_from(folderpath=config["dataset"]["pdd_folder"])
     pdd_places = sorted(set(itertools.chain(*[pddlib.get_places_from(pdd_csvrow) for (_, pdd_csvrow) in pdd_csvrows])))
-
     map_place_ids = repositories.places.ensure_ids_for(pdd_places)
     repositories.commit()
     assert map_place_ids
+
+    pdd_csvrows = stream_csv_from(folderpath=config["dataset"]["pdd_folder"])
+    pdd_postcodes = sorted(set(itertools.chain(*[pddlib.get_postcodes_from(pdd_csvrow) for (_, pdd_csvrow) in pdd_csvrows])))
+    pdd_postgroups = sorted(set([ pc.split(' ') for pc in pdd_postcodes ]))
+    map_postgroups_ids = repositories.postcodes.ensure_ids_for(pdd_postgroups)
+    repositories.commit()
+    assert map_postgroups_ids
+    map_postcodes_ids = repositories.postcodes.ensure_ids_for(pdd_postcodes, map_postgroups_ids)
+    repositories.commit()
+    assert map_postcodes_ids
 
     ofsted_csvrows = stream_csv_from(folderpath=config["dataset"]["ofsted_folder"], encoding="cp1252", header=True)
     ofsted_records = [ofstedlib.transform(h, r) for (h, r) in ofsted_csvrows]
