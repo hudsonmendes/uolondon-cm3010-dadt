@@ -1,4 +1,4 @@
-import dateparser
+from typing import Set
 
 # https://www.gov.uk/guidance/about-the-price-paid-data#explanations-of-column-headers-in-the-ppd
 header = {
@@ -33,19 +33,12 @@ tenure_type = {
 }
 
 
-def transform(csvrow):
-    doc = {k: csvrow[i].strip() for (k, i) in header.items()}
-    if doc["ppd_category_type"] == "A":
-        doc["property_type"] = property_type.get(doc["property_type"], None)
-        if doc["property_type"] is None:
-            doc["property_type"] = property_type.get("O")
-        doc["tenure_type"] = property_type.get(doc["tenure_type"], None)
-        if doc["tenure_type"] is None:
-            doc["tenure_type"] = tenure_type.get("U")
-        if not doc["locality"]:
-            doc["locality"] = doc["district"]
-        doc["postgroup"] = doc["postcode"].split(" ")[0] if doc["postcode"] else ""
-        doc["new_build"] = doc["new_build"] == "Y"
-        doc["price"] = float(doc["price"])
-        doc["ts"] = dateparser.parse(doc["ts"])
-        return doc
+def get_places_from(csvrow) -> Set[str]:
+    return set(
+        [
+            csvrow[header["locality"]],
+            csvrow[header["town_or_city"]],
+            csvrow[header["district"]],
+            csvrow[header["county"]],
+        ]
+    )

@@ -16,10 +16,7 @@
             "program": "${workspaceFolder}/etl",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "args": [
-                "--pdd_max_rows_each_file", "-1",
-                "--ofsted_max_rows_each_file", "-1"
-            ]
+            "args": []
         },
     ]
 }

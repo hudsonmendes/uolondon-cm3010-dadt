@@ -50,15 +50,24 @@ CREATE TABLE `places_postcodes` (
     CONSTRAINT pk_places_postcodes PRIMARY KEY (`place_id`, `postcode_id`)
 );
 
+CREATE TABLE `property_types` (
+    id                          INT             NOT NULL    AUTO_INCREMENT,
+    name                        VARCHAR(120)    NOT NULL,
+    CONSTRAINT pk_property_types PRIMARY KEY (`id`),
+    INDEX ix_property_types_name (`name`)
+);
+
 CREATE TABLE `properties` (
     id                          INT             NOT NULL    AUTO_INCREMENT,
     number_or_name              VARCHAR(120)    NOT NULL,
     building_ref                VARCHAR(120)    NOT NULL,
     street_name                 VARCHAR(120)    NOT NULL,
     postcode_id                 INT             NOT NULL,
+    property_type_id            INT             NOT NULL,
     CONSTRAINT pk_properties PRIMARY KEY (`id`),
     CONSTRAINT fk_properties_postcode_id FOREIGN KEY (`postcode_id`) REFERENCES `postcodes` (`id`),
-    UNIQUE INDEX ix_properties (`number_or_name`, `building_ref`, `street_name`, `postcode_id`)
+    CONSTRAINT fk_properties_property_type_id FOREIGN KEY (`property_type_id`) REFERENCES `property_types` (`id`),
+    UNIQUE INDEX ix_properties (`number_or_name`, `building_ref`, `street_name`, `postcode_id`, `property_type_id`)
 );
 
 CREATE TABLE `tenures` (
