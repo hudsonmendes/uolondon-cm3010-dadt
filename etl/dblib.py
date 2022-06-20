@@ -48,12 +48,13 @@ class PlaceRepository(BaseRepository):
             with self.conn.cursor() as cursor:
                 # collecting
                 cursor.execute("SELECT name FROM places ORDER BY name")
-                existing_names = set([row[0] for row in cursor])
-                missing_names = sorted(place_names - existing_names)
+                incoming_records = set((pn,) for pn in place_names)
+                existing_records = set(cursor)
+                missing_records = sorted(incoming_records - existing_records)
+                missing_iterator = tqdm(missing_records, desc="inserting(places)")
                 # inserting missing
                 sql = "INSERT INTO places (name) VALUES (%s)"
-                for missing_name in tqdm(missing_names, desc="inserting(places)"):
-                    cursor.execute(sql, (missing_name,))
+                cursor.executemany(sql, missing_iterator)
                 # mapping
                 cursor.execute("SELECT id, name FROM places ORDER BY name")
                 return {place_name: place_id for (place_id, place_name) in cursor}
@@ -68,35 +69,41 @@ class PostgroupRepository(BaseRepository):
             with self.conn.cursor() as cursor:
                 # collecting
                 cursor.execute("SELECT name FROM postgroups ORDER BY name")
-                existing_names = set([row[0] for row in cursor])
-                missing_names = sorted(postgroups - existing_names)
+                incoming_records = set((pg,) for pg in postgroups)
+                existing_records = set(cursor)
+                missing_records = sorted(incoming_records - existing_records)
+                missing_iterator = tqdm(missing_records, desc="inserting(postgroups)")
                 # inserting missing
                 sql = "INSERT INTO postgroups (name) VALUES (%s)"
-                for missing_name in tqdm(missing_names, desc="inserting(postgroups)"):
-                    cursor.execute(sql, (missing_name,))
+                cursor.executemany(sql, missing_iterator)
                 # mapping
                 cursor.execute("SELECT id, name FROM postgroups ORDER BY name")
                 return {postgroup: pg_id for (pg_id, postgroup) in cursor}
 
 
 class PostcodeRepository(BaseRepository):
-    def ensure_ids_for(self, postcodes: Set[str], postgroups_ids: Dict[str, int]) -> Dict[str, int]:
+    def ensure_ids_for(self, postcodes: Set[str], pgids: Dict[str, int]) -> Dict[str, int]:
         postcodes = set([pc for pc in postcodes if pc])
         if not postcodes:
             return {}
         else:
             with self.conn.cursor() as cursor:
                 # collecting
-                cursor.execute("SELECT name FROM postcodes ORDER BY name")
-                existing_names = set([row[0] for row in cursor])
-                missing_names = sorted(postcodes - existing_names)
+                cursor.execute("SELECT postgroup_id, name FROM postcodes")
+                incoming_records = set(
+                    (
+                        pgids.get(pc.strip(" ")[0], None),
+                        pc,
+                    )
+                    for pc in postcodes
+                )
+                existing_records = set(cursor)
+                missing_records = sorted(incoming_records - existing_records)
+                missing_iterator = tqdm(missing_records, desc="inserting(postcodes)")
+
                 # inserting missing
                 sql = "INSERT INTO postcodes (postgroup_id, name) VALUES (%s, %s)"
-                for missing_name in tqdm(missing_names, desc="inserting(postcodes)"):
-                    missing_pg = missing_name.split(" ")[0]
-                    missing_pg_id = postgroups_ids.get(missing_pg, None)
-                    if missing_pg_id and missing_name:
-                        cursor.execute(sql, (missing_pg_id, missing_name))
+                cursor.executemany(sql, missing_iterator)
                 # mapping
                 cursor.execute("SELECT id, name FROM postcodes ORDER BY name")
                 return {postcode: pc_id for (pc_id, postcode) in cursor}
@@ -110,11 +117,11 @@ class PlacePostgroupRepository(BaseRepository):
             cursor.execute("SELECT postgroup_id, place_id FROM places_postgroups")
             exiting_links = set(row for row in cursor)
             missing_links = translated_links - exiting_links
+            missing_iterator = tqdm(missing_links, desc="linking(postgroup/place)")
 
             # inserting missing
             sql = "INSERT INTO places_postgroups (postgroup_id, place_id) VALUES (%s, %s)"
-            for pgid, pid in tqdm(missing_links, desc="linking(postgroup/place)"):
-                cursor.execute(sql, (pgid, pid))
+            cursor.executemany(sql, missing_iterator)
 
 
 class PropertyTypeRepository(BaseRepository):
@@ -126,12 +133,13 @@ class PropertyTypeRepository(BaseRepository):
             with self.conn.cursor() as cursor:
                 # collecting
                 cursor.execute("SELECT name FROM property_types ORDER BY name")
-                existing_names = set([row[0] for row in cursor])
-                missing_names = sorted(property_type_names - existing_names)
+                inbound_records = set((pt,) for pt in property_type_names)
+                existing_records = set(cursor)
+                missing_records = sorted(inbound_records - existing_records)
+                missing_iterator = tqdm(missing_records, desc="inserting(property_types)")
                 # inserting missing
                 sql = "INSERT INTO property_types (name) VALUES (%s)"
-                for missing_name in tqdm(missing_names, desc="inserting(property_types)"):
-                    cursor.execute(sql, (missing_name,))
+                cursor.executemany(sql, missing_iterator)
                 # mapping
                 cursor.execute("SELECT id, name FROM property_types ORDER BY name")
                 return {pt_name: pt_id for (pt_id, pt_name) in cursor}
@@ -147,12 +155,13 @@ class TenureRepository(BaseRepository):
             with self.conn.cursor() as cursor:
                 # collecting
                 cursor.execute("SELECT name FROM tenures ORDER BY name")
-                existing_names = set([row[0] for row in cursor])
-                missing_names = sorted(place_names - existing_names)
+                inbound_records = set((pn,) for pn in place_names)
+                existing_records = set(cursor)
+                missing_records = sorted(inbound_records - existing_records)
+                missing_iterator = tqdm(missing_records, desc="inserting(tenures)")
                 # inserting missing
                 sql = "INSERT INTO tenures (name) VALUES (%s)"
-                for missing_name in tqdm(missing_names, desc="inserting(tenures)"):
-                    cursor.execute(sql, (missing_name,))
+                cursor.executemany(sql, missing_iterator)
                 # mapping
                 cursor.execute("SELECT id, name FROM tenures ORDER BY name")
                 return {t_name: t_id for (t_id, t_name) in cursor}
@@ -165,7 +174,7 @@ class PropertyRepository(BaseRepository):
         pcids: Dict[str, int],
         ptids: Dict[str, int],
     ) -> Dict[Tuple[str, str, str, str, str], int]:
-        records = set((pcids[pc], ptids[pt], non, br, sn) for (pc, pt, non, br, sn) in properties)
+        records = set((pcids.get(pc, None), ptids.get(pt, None), non, br, sn) for (pc, pt, non, br, sn) in properties)
         with self.conn.cursor() as cursor:
             # inserting missing
             sql = """
@@ -174,8 +183,9 @@ class PropertyRepository(BaseRepository):
             VALUES
             (%s, %s, %s, %s, %s)
             """
-            for record in tqdm(records, desc="inserting(properties)"):
-                cursor.execute(sql, record)
+            inbound_records = set(r for r in records if r[0] and r[1])
+            inbound_iterator = tqdm(inbound_records, desc="inserting(properties)")
+            cursor.executemany(sql, inbound_iterator)
             # mapping
             cursor.execute(
                 """
@@ -200,7 +210,9 @@ class TransactionRepository(BaseRepository):
         tids: Dict[str, int],
     ):
         records = set(
-            (pids[p], tids[t], new_build, price, ts) for (p, t, new_build, price, ts) in transactions if price and ts
+            (pids.get(p, None), tids.get(t, None), new_build, price, ts)
+            for (p, t, new_build, price, ts) in transactions
+            if price and ts
         )
         with self.conn.cursor() as cursor:
             # inserting missing
@@ -210,8 +222,9 @@ class TransactionRepository(BaseRepository):
             VALUES
             (%s, %s, %s, %s, %s)
             """
-            for record in tqdm(records, desc="inserting(transactions)"):
-                cursor.execute(sql, record)
+            inbound_records = set(r for r in records if r[0] and r[1])
+            inbound_iterator = tqdm(inbound_records, desc="inserting(transactions)")
+            cursor.executemany(sql, inbound_iterator)
 
 
 def repositories(config) -> Repositories:
