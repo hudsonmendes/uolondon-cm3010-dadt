@@ -15,15 +15,20 @@ if (!fs.existsSync(configPath)) {
 }
 var config = ini.parse(fs.readFileSync(configPath, 'utf-8'))
 console.log(`Config loaded from "${configPath}"`)
+const basePath = !process.cwd().endsWith("web") ? './web' : './'
 
 // Initialise objects and declare constants
 const app = express();
 const webPort = config.web.port;
 const db = mysql.createConnection(config.mysql);
 
+// serve static files
+app.use(express.static(`${basePath}/public`))
+
+// template engine
 app.engine('html', mustacheExpress());
 app.set('view engine', 'html');
-app.set('views', './web');
+app.set('views', `${basePath}/templates`);
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.get('/', (_, res) => res.render("index"));

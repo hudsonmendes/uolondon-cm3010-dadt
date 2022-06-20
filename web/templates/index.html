@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Find Houses near Good Schools</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+</head>
+
+<body>
+    <h1>Find Regions with Good Schools & Good Home Prices</h1>
+    <p>Use this tool to know which regions to consider in your home search.</p>
+
+    <table>
+        <tr>
+            <td>
+                <p>Search Price Range & Postcodes</p>
+                <form method="post" action="search">
+                    <div class="field">
+                        <label>Postcode</label>
+                        <select id="postgroupIds">
+                            {{#postgroups}}
+                            <option value="{{value}}">{{text}}</option>
+                            {{/postgroups}}
+                        </select>
+                    </div>
+
+                    <div class="field">
+                        <label>Price Range</label>
+                        from
+                        <select id="priceRangeStart">
+                            {{#priceRanges}}
+                            <option value="{{value}}">{{text}}</option>
+                            {{/priceRanges}}
+                        </select>
+                        to
+                        <select id="priceRangeEnd">
+                            {{#priceRanges}}
+                            <option value="{{value}}">{{text}}</option>
+                            {{/priceRanges}}
+                        </select>
+                    </div>
+
+                    <div class="commands">
+                        <button type="submit" />
+                    </div>
+                </form>
+            </td>
+            <td>
+                <p>Search by Place Name</p>
+                <form method="get" action="search">
+                    <div class="field">
+                        <label>Place Name</label>
+                        <input type="text" id="placeName">
+                    </div>
+
+                    <div class="commands">
+                        <button type="submit" />
+                    </div>
+                </form>
+            </td>
+        </tr>
+    </table>
+
+    
+    <footer>
+        Contains HM Land Registry data © Crown copyright and database right 2021.<br />
+        This data is licensed under the <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/">Open Government Licence v3.0</a>.
+    </footer>
+</body>
+
+</html>
