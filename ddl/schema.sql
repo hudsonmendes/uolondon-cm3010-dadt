@@ -32,7 +32,9 @@ CREATE TABLE `postgroups` (
 CREATE TABLE `places_postgroups` (
     place_id                    INT             NOT NULL,
     postgroup_id                INT             NOT NULL,
-    CONSTRAINT pk_places_postgroups PRIMARY KEY (`place_id`, `postgroup_id`)
+    CONSTRAINT pk_places_postgroups PRIMARY KEY (`place_id`, `postgroup_id`),
+    CONSTRAINT fk_places_postgroups_place_id FOREIGN KEY (`place_id`) REFERENCES `places` (`id`),
+    CONSTRAINT fk_places_postgroups_postgroup_id FOREIGN KEY (`postgroup_id`) REFERENCES `postgroups` (`id`)
 );
 
 CREATE TABLE `postcodes` (
