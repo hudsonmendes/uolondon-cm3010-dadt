@@ -1,6 +1,5 @@
 import configparser
 import csv
-import itertools
 import os
 import shutil
 
@@ -14,26 +13,8 @@ import ofstedlib
 def run():
     config = get_config()
     repositories = dblib.repositories(config)
-
-    pdd_csvrows = stream_csv_from(folderpath=config["dataset"]["pdd_folder"])
-    pdd_places = sorted(set(itertools.chain(*[pddlib.get_places_from(pdd_csvrow) for (_, pdd_csvrow) in pdd_csvrows])))
-    map_place_ids = repositories.places.ensure_ids_for(pdd_places)
-    repositories.commit()
-    assert map_place_ids
-
-    pdd_csvrows = stream_csv_from(folderpath=config["dataset"]["pdd_folder"])
-    pdd_postcodes = sorted(set(itertools.chain(*[pddlib.get_postcodes_from(pdd_csvrow) for (_, pdd_csvrow) in pdd_csvrows])))
-    pdd_postgroups = sorted(set([ pc.split(' ') for pc in pdd_postcodes ]))
-    map_postgroups_ids = repositories.postcodes.ensure_ids_for(pdd_postgroups)
-    repositories.commit()
-    assert map_postgroups_ids
-    map_postcodes_ids = repositories.postcodes.ensure_ids_for(pdd_postcodes, map_postgroups_ids)
-    repositories.commit()
-    assert map_postcodes_ids
-
-    ofsted_csvrows = stream_csv_from(folderpath=config["dataset"]["ofsted_folder"], encoding="cp1252", header=True)
-    ofsted_records = [ofstedlib.transform(h, r) for (h, r) in ofsted_csvrows]
-    assert ofsted_records
+    etl_property_transactions(config, repositories)
+    etl_ofsted_statistics(config, repositories)
 
 
 def get_config():
@@ -43,6 +24,44 @@ def get_config():
     config = configparser.ConfigParser()
     config.read("./config.ini")
     return config
+
+
+def etl_property_transactions(config, repositories: dblib.Repositories):
+    pdd_csvrows = stream_csv_from(folderpath=config["dataset"]["pdd_folder"])
+    pdd_postgroups = set()
+    pdd_postcodes = set()
+    pdd_places = set()
+    pdd_property_types = set()
+    pdd_properties = set()
+    pdd_pg_places = {}
+    for pdd_csvrow in pdd_csvrows:
+        # capture
+        pdd_row_places = pddlib.get_places_from(pdd_csvrow)
+        pdd_row_postcode = pddlib.get_postcode_from(pdd_csvrow)
+        pddlib.update_map_with_postgroups_and_place_links(append_to=pdd_pg_places, csvrow=pdd_csvrow)
+        pdd_row_property_type = pddlib.get_property_type_from(pdd_csvrow)
+        pdd_row_property = pddlib.get_property_from(pdd_csvrow)
+        # pile up
+        pdd_postcodes.add(pdd_row_postcode)
+        pdd_postgroups.add(pdd_row_postcode.split(" ")[0])
+        [pdd_places.add(pdd_place) for pdd_place in pdd_row_places]
+        pdd_property_types.add(pdd_row_property_type)
+        pdd_properties.add(pdd_row_property)
+    # store and get ids
+    map_place_ids = repositories.places.ensure_ids_for(pdd_places)
+    map_postgroups_ids = repositories.postgroups.ensure_ids_for(pdd_postgroups)
+    map_postcodes_ids = repositories.postcodes.ensure_ids_for(pdd_postcodes, map_postgroups_ids)
+    map_propert_type_ids = repositories.property_types.ensure_ids_for(pdd_property_types)
+    map_property_ids = repositories.properties.ensure_ids_for(pdd_properties, map_postcodes_ids, map_propert_type_ids)
+    repositories.places_postgroups.link(pdd_pg_places, map_place_ids, map_postgroups_ids)
+    repositories.commit()
+
+
+def etl_ofsted_statistics(config, repositories: dblib.Repositories):
+    pass
+    # ofsted_csvrows = stream_csv_from(folderpath=config["dataset"]["ofsted_folder"], encoding="cp1252", header=True)
+    # ofsted_records = [ofstedlib.transform(h, r) for (h, r) in ofsted_csvrows]
+    # assert ofsted_records
 
 
 def stream_csv_from(folderpath, encoding: str = "utf-8", header: bool = False):

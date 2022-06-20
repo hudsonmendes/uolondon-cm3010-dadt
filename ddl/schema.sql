@@ -44,12 +44,6 @@ CREATE TABLE `postcodes` (
     UNIQUE INDEX ix_postgroups_name (`name`)
 );
 
-CREATE TABLE `places_postcodes` (
-    place_id                    INT             NOT NULL,
-    postcode_id                 INT             NOT NULL,
-    CONSTRAINT pk_places_postcodes PRIMARY KEY (`place_id`, `postcode_id`)
-);
-
 CREATE TABLE `property_types` (
     id                          INT             NOT NULL    AUTO_INCREMENT,
     name                        VARCHAR(120)    NOT NULL,
