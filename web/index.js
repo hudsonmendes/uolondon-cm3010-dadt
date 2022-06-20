@@ -31,6 +31,15 @@ app.set('view engine', 'html');
 app.set('views', `${basePath}/templates`);
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.get('/', (_, res) => res.render("index"));
+app.get('/', (_, res) => {
+    db.query(
+        "SELECT id, name FROM postgroups ORDER BY name",
+        (_, results) => {
+            const postgroups = results.map(r => ({ value: r.id, text: r.name }))
+            const priceRanges = [...Array(10).keys()].map(i => 100000 + (i * 50000)).map(v => ({ value: v, text: v.toLocaleString('en-US') }))
+            const data = {postgroups, priceRanges}
+            return res.render("index", data)
+        })
+});
 
 app.listen(webPort, () => console.log('App Started, listening http://127.0.0.1:' + webPort)); // success callback

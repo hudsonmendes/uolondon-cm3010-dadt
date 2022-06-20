@@ -8,65 +8,74 @@
 </head>
 
 <body>
-    <h1>Find Regions with Good Schools & Good Home Prices</h1>
-    <p>Use this tool to know which regions to consider in your home search.</p>
+    <div class="container">
+        <h1>Find Regions with Good Schools & Good Home Prices</h1>
+        <p>Use this tool to know which regions to consider in your home search.</p>
 
-    <table>
-        <tr>
-            <td>
-                <p>Search Price Range & Postcodes</p>
-                <form method="post" action="search">
-                    <div class="field">
-                        <label>Postcode</label>
-                        <select id="postgroupIds">
-                            {{#postgroups}}
-                            <option value="{{value}}">{{text}}</option>
-                            {{/postgroups}}
-                        </select>
-                    </div>
+        <table id="formInput">
+            <tr>
+                <td>
+                    <h2>Search Price Range & Postcodes</h2>
+                    <form method="post" action="search">
+                        <table>
+                            <tr>
+                                <td>
+                                    <div class="field">
+                                        <label>Postcode</label>
+                                        <select id="postgroupIds" multiple="True">
+                                            {{#postgroups}}
+                                            <option value="{{value}}">{{text}}</option>
+                                            {{/postgroups}}
+                                        </select>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="field">
+                                        <label>Price Range</label>
+                                        from
+                                        <select id="priceRangeStart" class="money">
+                                            {{#priceRanges}}
+                                            <option value="{{value}}">{{text}}</option>
+                                            {{/priceRanges}}
+                                        </select>
+                                        to
+                                        <select id="priceRangeEnd" class="money">
+                                            {{#priceRanges}}
+                                            <option value="{{value}}">{{text}}</option>
+                                            {{/priceRanges}}
+                                        </select>
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
 
-                    <div class="field">
-                        <label>Price Range</label>
-                        from
-                        <select id="priceRangeStart">
-                            {{#priceRanges}}
-                            <option value="{{value}}">{{text}}</option>
-                            {{/priceRanges}}
-                        </select>
-                        to
-                        <select id="priceRangeEnd">
-                            {{#priceRanges}}
-                            <option value="{{value}}">{{text}}</option>
-                            {{/priceRanges}}
-                        </select>
-                    </div>
+                        <div class="commands">
+                            <button type="submit">Search</button>
+                        </div>
+                    </form>
+                </td>
+                <td>
+                    <h2>Search by Place Name</h2>
+                    <form method="get" action="search">
+                        <div class="field">
+                            <label>Place Name</label>
+                            <input type="text" id="placeName">
+                        </div>
 
-                    <div class="commands">
-                        <button type="submit" />
-                    </div>
-                </form>
-            </td>
-            <td>
-                <p>Search by Place Name</p>
-                <form method="get" action="search">
-                    <div class="field">
-                        <label>Place Name</label>
-                        <input type="text" id="placeName">
-                    </div>
+                        <div class="commands">
+                            <button type="submit">Search</button>
+                        </div>
+                    </form>
+                </td>
+            </tr>
+        </table>
 
-                    <div class="commands">
-                        <button type="submit" />
-                    </div>
-                </form>
-            </td>
-        </tr>
-    </table>
 
-    
-    <footer>
-        Contains HM Land Registry data © Crown copyright and database right 2021.<br />
-        This data is licensed under the <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/">Open Government Licence v3.0</a>.
-    </footer>
+        <footer>
+            Contains HM Land Registry data © Crown copyright and database right 2021.<br />
+            This data is licensed under the <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/">Open Government Licence v3.0</a>.
+        </footer>
+    </div>
 </body>
 
 </html>
