@@ -1,6 +1,7 @@
 from abc import ABC
 from dataclasses import dataclass
-from typing import List, Set, Dict, Tuple
+from typing import Set, Dict, Tuple
+from datetime import datetime
 from tqdm import tqdm
 
 import mysql.connector as mysql
@@ -23,8 +24,11 @@ class Repositories:
     places: "PlaceRepository"
     postgroups: "PostgroupRepository"
     postcodes: "PostcodeRepository"
+    places_postgroups: "PlacePostgroupRepository"
     property_types: "PropertyTypeRepository"
+    tenures: "TenureRepository"
     properties: "PropertyRepository"
+    transactions: "TransactionRepository"
 
     def commit(self):
         self.conn.commit()
@@ -37,7 +41,7 @@ class BaseRepository(ABC):
 
 class PlaceRepository(BaseRepository):
     def ensure_ids_for(self, place_names: Set[str]) -> Dict[str, int]:
-        place_names = [pn for pn in place_names if pn]
+        place_names = set([pn for pn in place_names if pn])
         if not place_names:
             return {}
         else:
@@ -57,7 +61,7 @@ class PlaceRepository(BaseRepository):
 
 class PostgroupRepository(BaseRepository):
     def ensure_ids_for(self, postgroups: Set[str]) -> Dict[str, int]:
-        postgroups = [pg for pg in postgroups if pg]
+        postgroups = set([pg for pg in postgroups if pg])
         if not postgroups:
             return {}
         else:
@@ -77,7 +81,7 @@ class PostgroupRepository(BaseRepository):
 
 class PostcodeRepository(BaseRepository):
     def ensure_ids_for(self, postcodes: Set[str], postgroups_ids: Dict[str, int]) -> Dict[str, int]:
-        postcodes = [pc for pc in postcodes if pc]
+        postcodes = set([pc for pc in postcodes if pc])
         if not postcodes:
             return {}
         else:
@@ -98,9 +102,24 @@ class PostcodeRepository(BaseRepository):
                 return {postcode: pc_id for (pc_id, postcode) in cursor}
 
 
+class PlacePostgroupRepository(BaseRepository):
+    def link(self, postgroup_places: Set[Tuple[str, str]], pgids: Dict[str, int], pids: Dict[str, int]) -> None:
+        translated_links = set([(pgids[pg], pids[p]) for (pg, p) in postgroup_places])
+        with self.conn.cursor() as cursor:
+            # collecting
+            cursor.execute("SELECT postgroup_id, place_id FROM places_postgroups")
+            exiting_links = set(row for row in cursor)
+            missing_links = translated_links - exiting_links
+
+            # inserting missing
+            sql = "INSERT INTO places_postgroups (postgroup_id, place_id) VALUES (%s, %s)"
+            for pgid, pid in tqdm(missing_links, desc="linking(postgroup/place)"):
+                cursor.execute(sql, (pgid, pid))
+
+
 class PropertyTypeRepository(BaseRepository):
     def ensure_ids_for(self, property_type_names: Set[str]) -> Dict[str, int]:
-        property_type_names = [ptn for ptn in property_type_names if ptn]
+        property_type_names = set([ptn for ptn in property_type_names if ptn])
         if not property_type_names:
             return {}
         else:
@@ -115,36 +134,52 @@ class PropertyTypeRepository(BaseRepository):
                     cursor.execute(sql, (missing_name,))
                 # mapping
                 cursor.execute("SELECT id, name FROM property_types ORDER BY name")
-                return {place_name: place_id for (place_id, place_name) in cursor}
+                return {pt_name: pt_id for (pt_id, pt_name) in cursor}
         return {}
+
+
+class TenureRepository(BaseRepository):
+    def ensure_ids_for(self, place_names: Set[str]) -> Dict[str, int]:
+        place_names = set([pn for pn in place_names if pn])
+        if not place_names:
+            return {}
+        else:
+            with self.conn.cursor() as cursor:
+                # collecting
+                cursor.execute("SELECT name FROM tenures ORDER BY name")
+                existing_names = set([row[0] for row in cursor])
+                missing_names = sorted(place_names - existing_names)
+                # inserting missing
+                sql = "INSERT INTO tenures (name) VALUES (%s)"
+                for missing_name in tqdm(missing_names, desc="inserting(tenures)"):
+                    cursor.execute(sql, (missing_name,))
+                # mapping
+                cursor.execute("SELECT id, name FROM tenures ORDER BY name")
+                return {t_name: t_id for (t_id, t_name) in cursor}
 
 
 class PropertyRepository(BaseRepository):
     def ensure_ids_for(
         self,
         properties: Set[Tuple[str, str, str, str, str]],
-        postcode_ids: Dict[str, int],
-        property_type_ids: Dict[str, int],
+        pcids: Dict[str, int],
+        ptids: Dict[str, int],
     ) -> Dict[Tuple[str, str, str, str, str], int]:
+        records = set((pcids[pc], ptids[pt], non, br, sn) for (pc, pt, non, br, sn) in properties)
         with self.conn.cursor() as cursor:
             # inserting missing
-            sql = "REPLACE INTO postcodes (postgroup_id, name) VALUES (%s, %s)"
-            for property in tqdm(properties, desc="inserting(properties)"):
-                (postcode, property_type, number_or_name, building_ref, street_name) = property
-                cursor.execute(
-                    sql,
-                    (
-                        postcode_ids[postcode],
-                        property_type_ids[property_type],
-                        number_or_name,
-                        building_ref,
-                        street_name,
-                    ),
-                )
+            sql = """
+            INSERT IGNORE INTO properties
+            (postcode_id, property_type_id, number_or_name, building_ref, street_name)
+            VALUES
+            (%s, %s, %s, %s, %s)
+            """
+            for record in tqdm(records, desc="inserting(properties)"):
+                cursor.execute(sql, record)
             # mapping
             cursor.execute(
                 """
-            SELECT id, pc.name `postcode`, pt.name `property_type`
+            SELECT p.id, pc.name `postcode`, pt.name `property_type`,
                    number_or_name, building_ref, street_name
             FROM properties p
                 INNER JOIN postcodes pc ON p.postcode_id = pc.id
@@ -157,6 +192,28 @@ class PropertyRepository(BaseRepository):
             }
 
 
+class TransactionRepository(BaseRepository):
+    def ensure(
+        self,
+        transactions: Set[Tuple[Tuple[str, str, str, str, str], str, bool, float, datetime]],
+        pids: Dict[Tuple[str, str, str, str, str], int],
+        tids: Dict[str, int],
+    ):
+        records = set(
+            (pids[p], tids[t], new_build, price, ts) for (p, t, new_build, price, ts) in transactions if price and ts
+        )
+        with self.conn.cursor() as cursor:
+            # inserting missing
+            sql = """
+            INSERT IGNORE INTO property_transactions
+            (property_id, tenure_id, new_build, price, ts)
+            VALUES
+            (%s, %s, %s, %s, %s)
+            """
+            for record in tqdm(records, desc="inserting(transactions)"):
+                cursor.execute(sql, record)
+
+
 def repositories(config) -> Repositories:
     conn = mysql.connect(**config["mysql"])
     return Repositories(
@@ -164,6 +221,9 @@ def repositories(config) -> Repositories:
         places=PlaceRepository(conn),
         postgroups=PostgroupRepository(conn),
         postcodes=PostcodeRepository(conn),
+        places_postgroups=PlacePostgroupRepository(conn),
         property_types=PropertyTypeRepository(conn),
+        tenures=TenureRepository(conn),
         properties=PropertyRepository(conn),
+        transactions=TransactionRepository(conn),
     )

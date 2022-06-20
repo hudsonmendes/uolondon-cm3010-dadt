@@ -1,4 +1,7 @@
 # https://www.gov.uk/guidance/about-the-price-paid-data#explanations-of-column-headers-in-the-ppd
+import dateparser
+
+
 header = {
     "price": 1,
     "ts": 2,
@@ -16,7 +19,7 @@ header = {
     "ppd_category_type": 14,
 }
 
-property_type = {
+property_type_names = {
     "D": "Detached",
     "S": "Semi-detached",
     "T": "Terraced",
@@ -24,7 +27,7 @@ property_type = {
     "O": "Other",
 }
 
-tenure_type = {
+tenure_names = {
     "F": "Freehold",
     "L": "Leasehold",
     "U": "Unspecified",
@@ -36,10 +39,22 @@ def fix_critical_positions(csvrow):
     csvrow[header["postcode"]] = postcode if postcode else ""
 
     property_type = csvrow[header["property_type"]]
-    csvrow[header["property_type"]] = property_type if property_type else "O"
+    csvrow[header["property_type"]] = property_type_names[property_type if property_type else "O"]
 
     tenure_type = csvrow[header["tenure_type"]]
-    csvrow[header["tenure_type"]] = tenure_type if tenure_type else "U"
+    csvrow[header["tenure_type"]] = tenure_names[tenure_type if tenure_type else "U"]
+
+    csvrow[header["new_build"]] = csvrow[header["new_build"]] == "Y"
+
+    try:
+        csvrow[header["price"]] = float(csvrow[header["price"]])
+    except:
+        csvrow[header["price"]] = None
+
+    try:
+        csvrow[header["ts"]] = dateparser.parse(csvrow[header["ts"]])
+    except:
+        csvrow[header["ts"]] = None
 
     return csvrow
 
@@ -59,28 +74,35 @@ def get_postcode_from(csvrow) -> str:
     return csvrow[header["postcode"]]
 
 
-def update_map_with_postgroups_and_place_links(append_to, csvrow):
-    postcode = csvrow[header["postcode"]]
-    postcode = postcode if postcode else ""
-    if postcode:
-        postgroup = postcode.split(" ")[0]
-        append_to.setdefault(postgroup, set())
-        place_set = append_to[postgroup]
-        place_set.add(csvrow[header["locality"]])
-        place_set.add(csvrow[header["town_or_city"]])
-        place_set.add(csvrow[header["district"]])
-        place_set.add(csvrow[header["county"]])
-
-
 def get_property_type_from(csvrow):
     return csvrow[header["property_type"]]
+
+
+def get_tenure_from(csvrow):
+    return csvrow[header["tenure_type"]]
 
 
 def get_property_from(csvrow):
     return (
         csvrow[header["postcode"]],
-        property_type[csvrow[header["property_type"]]],
+        csvrow[header["property_type"]],
         csvrow[header["property_number_or_name"]],
         csvrow[header["building_or_block"]],
         csvrow[header["street_name"]],
+    )
+
+
+def get_transaction_from(csvrow):
+    return (
+        (
+            csvrow[header["postcode"]],
+            csvrow[header["property_type"]],
+            csvrow[header["property_number_or_name"]],
+            csvrow[header["building_or_block"]],
+            csvrow[header["street_name"]],
+        ),
+        csvrow[header["tenure_type"]],
+        csvrow[header["new_build"]],
+        csvrow[header["price"]],
+        csvrow[header["ts"]],
     )
