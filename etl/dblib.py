@@ -54,10 +54,11 @@ class PlaceRepository(BaseRepository):
                 existing_records = set(cursor)
                 missing_records = sorted(incoming_records - existing_records)
                 # inserting missing
-                for i in trange(0, len(missing_records), step=BATCH_STEP, desc="inserting(places)"):
-                    batch = missing_records[i : i * BATCH_STEP]
-                    sql = "INSERT INTO places (name) VALUES (%s)"
-                    cursor.executemany(sql, batch)
+                if missing_records:
+                    for i in trange(0, len(missing_records), BATCH_STEP, desc="inserting(places)"):
+                        batch = missing_records[i : (i + 1) * BATCH_STEP]
+                        sql = "INSERT INTO places (name) VALUES (%s)"
+                        cursor.executemany(sql, batch)
                 # mapping
                 cursor.execute("SELECT id, name FROM places ORDER BY name")
                 return {place_name: place_id for (place_id, place_name) in cursor}
@@ -75,11 +76,12 @@ class PostgroupRepository(BaseRepository):
                 incoming_records = set((pg,) for pg in postgroups)
                 existing_records = set(cursor)
                 missing_records = sorted(incoming_records - existing_records)
-                for i in trange(0, len(missing_records), step=BATCH_STEP, desc="inserting(postgroups)"):
-                    # inserting missing
-                    batch = missing_records[i : i * BATCH_STEP]
-                    sql = "INSERT INTO postgroups (name) VALUES (%s)"
-                    cursor.executemany(sql, batch)
+                if missing_records:
+                    for i in trange(0, len(missing_records), BATCH_STEP, desc="inserting(postgroups)"):
+                        # inserting missing
+                        batch = missing_records[i : (i + 1) * BATCH_STEP]
+                        sql = "INSERT INTO postgroups (name) VALUES (%s)"
+                        cursor.executemany(sql, batch)
                 # mapping
                 cursor.execute("SELECT id, name FROM postgroups ORDER BY name")
                 return {postgroup: pg_id for (pg_id, postgroup) in cursor}
@@ -87,27 +89,23 @@ class PostgroupRepository(BaseRepository):
 
 class PostcodeRepository(BaseRepository):
     def ensure_ids_for(self, postcodes: Set[str], pgids: Dict[str, int]) -> Dict[str, int]:
-        postcodes = set([pc for pc in postcodes if pc])
+        postcodes = set(pc for pc in postcodes if pc)
+        records = set((pgids.get(pc.split(" ")[0], None), pc) for pc in postcodes if pc)
         if not postcodes:
             return {}
         else:
             with self.conn.cursor() as cursor:
                 # collecting
                 cursor.execute("SELECT postgroup_id, name FROM postcodes")
-                incoming_records = set(
-                    (
-                        pgids.get(pc.strip(" ")[0], None),
-                        pc,
-                    )
-                    for pc in postcodes
-                )
+                incoming_records = set(r for r in records if r[0])
                 existing_records = set(cursor)
                 missing_records = sorted(incoming_records - existing_records)
-                for i in trange(0, len(missing_records), step=BATCH_STEP, desc="inserting(postcodes)"):
-                    # inserting missing
-                    batch = missing_records[i : i * BATCH_STEP]
-                    sql = "INSERT INTO postcodes (postgroup_id, name) VALUES (%s, %s)"
-                    cursor.executemany(sql, batch)
+                if missing_records:
+                    for i in trange(0, len(missing_records), BATCH_STEP, desc="inserting(postcodes)"):
+                        # inserting missing
+                        batch = missing_records[i : (i + 1) * BATCH_STEP]
+                        sql = "INSERT INTO postcodes (postgroup_id, name) VALUES (%s, %s)"
+                        cursor.executemany(sql, batch)
                 # mapping
                 cursor.execute("SELECT id, name FROM postcodes ORDER BY name")
                 return {postcode: pc_id for (pc_id, postcode) in cursor}
@@ -115,17 +113,19 @@ class PostcodeRepository(BaseRepository):
 
 class PlacePostgroupRepository(BaseRepository):
     def link(self, postgroup_places: Set[Tuple[str, str]], pgids: Dict[str, int], pids: Dict[str, int]) -> None:
-        translated_links = set([(pgids[pg], pids[p]) for (pg, p) in postgroup_places])
+        translated_links = set((pgids.get(pg, None), pids.get(p, None)) for (pg, p) in postgroup_places)
         with self.conn.cursor() as cursor:
             # collecting
             cursor.execute("SELECT postgroup_id, place_id FROM places_postgroups")
-            exiting_links = set(row for row in cursor)
-            missing_links = sorted(translated_links - exiting_links)
-            for i in trange(0, len(missing_links), step=BATCH_STEP, desc="linking(postgroup/place)"):
-                # inserting missing
-                batch = missing_links[i : i * BATCH_STEP]
-                sql = "INSERT INTO places_postgroups (postgroup_id, place_id) VALUES (%s, %s)"
-                cursor.executemany(sql, batch)
+            inbound_links = set(l for l in translated_links if l[0] and l[1])
+            exiting_links = set(cursor)
+            missing_links = sorted(inbound_links - exiting_links)
+            if missing_links:
+                for i in trange(0, len(missing_links), BATCH_STEP, desc="linking(postgroup/place)"):
+                    # inserting missing
+                    batch = missing_links[i : (i + 1) * BATCH_STEP]
+                    sql = "INSERT INTO places_postgroups (postgroup_id, place_id) VALUES (%s, %s)"
+                    cursor.executemany(sql, batch)
 
 
 class PropertyTypeRepository(BaseRepository):
@@ -140,11 +140,12 @@ class PropertyTypeRepository(BaseRepository):
                 inbound_records = set((pt,) for pt in property_type_names)
                 existing_records = set(cursor)
                 missing_records = sorted(inbound_records - existing_records)
-                for i in trange(0, len(missing_records), step=BATCH_STEP, desc="inserting(postcodes)"):
-                    # inserting missing
-                    batch = missing_records[i : i * BATCH_STEP]
-                    sql = "INSERT INTO property_types (name) VALUES (%s)"
-                    cursor.executemany(sql, batch)
+                if missing_records:
+                    for i in trange(0, len(missing_records), BATCH_STEP, desc="inserting(postcodes)"):
+                        # inserting missing
+                        batch = missing_records[i : (i + 1) * BATCH_STEP]
+                        sql = "INSERT INTO property_types (name) VALUES (%s)"
+                        cursor.executemany(sql, batch)
                 # mapping
                 cursor.execute("SELECT id, name FROM property_types ORDER BY name")
                 return {pt_name: pt_id for (pt_id, pt_name) in cursor}
@@ -163,11 +164,12 @@ class TenureRepository(BaseRepository):
                 inbound_records = set((pn,) for pn in place_names)
                 existing_records = set(cursor)
                 missing_records = sorted(inbound_records - existing_records)
-                for i in trange(0, len(missing_records), step=BATCH_STEP, desc="inserting(tenures)"):
-                    # inserting missing
-                    batch = missing_records[i : i * BATCH_STEP]
-                    sql = "INSERT INTO tenures (name) VALUES (%s)"
-                    cursor.executemany(sql, batch)
+                if missing_records:
+                    for i in trange(0, len(missing_records), BATCH_STEP, desc="inserting(tenures)"):
+                        # inserting missing
+                        batch = missing_records[i : (i + 1) * BATCH_STEP]
+                        sql = "INSERT INTO tenures (name) VALUES (%s)"
+                        cursor.executemany(sql, batch)
                 # mapping
                 cursor.execute("SELECT id, name FROM tenures ORDER BY name")
                 return {t_name: t_id for (t_id, t_name) in cursor}
@@ -190,9 +192,9 @@ class PropertyRepository(BaseRepository):
             (%s, %s, %s, %s, %s)
             """
             inbound_records = [r for r in records if r[0] and r[1]]
-            for i in trange(0, len(inbound_records), step=BATCH_STEP, desc="inserting(properties)"):
+            for i in trange(0, len(inbound_records), BATCH_STEP, desc="inserting(properties)"):
                 # inserting missing
-                batch = inbound_records[i : i * BATCH_STEP]
+                batch = inbound_records[i : (i + 1) * BATCH_STEP]
                 cursor.executemany(sql, batch)
             # mapping
             cursor.execute(
@@ -231,10 +233,11 @@ class TransactionRepository(BaseRepository):
             (%s, %s, %s, %s, %s)
             """
             inbound_records = [r for r in records if r[0] and r[1]]
-            for i in trange(0, len(inbound_records), step=BATCH_STEP, desc="inserting(transactions)"):
-                # inserting missing
-                batch = inbound_records[i : i * BATCH_STEP]
-                cursor.executemany(sql, batch)
+            if inbound_records:
+                for i in trange(0, len(inbound_records), BATCH_STEP, desc="inserting(transactions)"):
+                    # inserting missing
+                    batch = inbound_records[i : (i + 1) * BATCH_STEP]
+                    cursor.executemany(sql, batch)
 
 
 def repositories(config) -> Repositories:
