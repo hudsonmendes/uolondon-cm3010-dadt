@@ -27,7 +27,7 @@ def get_config():
 
 
 def etl_property_transactions(config, repositories: dblib.Repositories):
-    pdd_csvrows = stream_csv_from(folderpath=config["dataset"]["pdd_folder"])
+    pdd_csvrows = stream_csv_from(folderpath=config["dataset"]["pdd_folder"], prefix="pp-")
     pdd_postgroups = set()
     pdd_postcodes = set()
     pdd_places = set()
@@ -58,11 +58,11 @@ def etl_property_transactions(config, repositories: dblib.Repositories):
     # store and get ids
     map_place_ids = repositories.places.ensure_ids_for(pdd_places)
     map_postgroups_ids = repositories.postgroups.ensure_ids_for(pdd_postgroups)
+    repositories.places_postgroups.link(pdd_pg_places, map_postgroups_ids, map_place_ids)
     map_postcodes_ids = repositories.postcodes.ensure_ids_for(pdd_postcodes, map_postgroups_ids)
     map_propert_type_ids = repositories.property_types.ensure_ids_for(pdd_property_types)
     map_property_ids = repositories.properties.ensure_ids_for(pdd_properties, map_postcodes_ids, map_propert_type_ids)
     map_tenure_ids = repositories.tenures.ensure_ids_for(pdd_tenures)
-    repositories.places_postgroups.link(pdd_pg_places, map_postgroups_ids, map_place_ids)
     repositories.transactions.ensure(pdd_transactions, map_property_ids, map_tenure_ids)
     repositories.commit()
 
@@ -74,12 +74,12 @@ def etl_ofsted_statistics(config, repositories: dblib.Repositories):
     # assert ofsted_records
 
 
-def stream_csv_from(folderpath, encoding: str = "utf-8", header: bool = False):
+def stream_csv_from(folderpath, encoding: str = "utf-8", prefix: str = None, header: bool = False):
     csvheader = None
     total = 0
     for root, _, filenames in os.walk(folderpath):
         for filename in filenames:
-            if filename.endswith(".csv"):
+            if (not prefix or filename.startswith(prefix)) and filename.endswith(".csv"):
                 filepath = os.path.join(root, filename)
                 with open(filepath, "r", encoding=encoding) as filehandle:
                     total = sum(1 for _ in filehandle) - (1 if header else 0)
