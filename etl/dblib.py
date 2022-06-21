@@ -260,11 +260,10 @@ class TransactionRepository(BaseRepository):
 class SchoolRepository(BaseRepository):
     def ensure_ids_for(
         self,
-        properties: Set[Tuple[str, str, str, str, str]],
+        schools: Set[Tuple[str, str]],
         pcids: Dict[str, int],
-        ptids: Dict[str, int],
-    ) -> Dict[Tuple[str, str, str, str, str], int]:
-        records = set((pcids.get(pc, None), ptids.get(pt, None), non, br, sn) for (pc, pt, non, br, sn) in properties)
+    ) -> Dict[Tuple[str, str], int]:
+        records = set((pcids.get(pc), name) for (pc, name) in schools)
         with self.conn.cursor() as cursor:
             # inserting missing
             sql = """
@@ -289,7 +288,7 @@ class SchoolRepository(BaseRepository):
 class RatingRepository(BaseRepository):
     def ensure(
         self,
-        ratings: Set[str, str, str, float],
+        ratings: Set[Tuple[str, str, str, float, datetime]],
         sids: Dict[Tuple[str, str], int],
         epids: Dict[str, int],
     ):

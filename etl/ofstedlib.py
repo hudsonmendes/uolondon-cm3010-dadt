@@ -1,11 +1,11 @@
 import dateparser
 
 header = {
-    "name": ["School name"],
-    "postcode": ["Postcode"],
-    "phase_of_education": ["Phase of education", "Ofsted Phase"],
-    "overall_effectiveness": ["Overall effectiveness"],
-    "ts": ["Publication date"],
+    "name": ["SCHOOL NAME"],
+    "postcode": ["POSTCODE"],
+    "phase_of_education": ["PHASE OF EDUCATION", "OFSTED PHASE"],
+    "overall_effectiveness": ["OVERALL EFFECTIVENESS"],
+    "ts": ["PUBLICATION DATE"],
 }
 
 
@@ -16,12 +16,17 @@ def transform(csvheader, csvrow):
             for k, v in header.items():
                 for vi in v:
                     if vi in csvheader:
-                        header_indices[k] = csvheader.index(vi)
+                        header_indices[k] = csvheader.index(vi.upper())
                         break
+                if not k in header_indices:
+                    raise KeyError(f"None of the keys for '{k}' found")
             doc = {k: csvrow[i].strip() for (k, i) in header_indices.items()}
-            doc["overall_effectiveness"] = float(doc["overall_effectiveness"])
-            doc["ts"] = dateparser.parse(doc["ts"])
-            return doc
+            if doc["overall_effectiveness"] != "NULL":
+                doc["overall_effectiveness"] = float(doc["overall_effectiveness"])
+                doc["ts"] = dateparser.parse(doc["ts"])
+                return doc
+            else:
+                return None
         except Exception as e:
             print((e, csvheader))
 

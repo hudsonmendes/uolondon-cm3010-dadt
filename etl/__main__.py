@@ -68,8 +68,9 @@ def etl_property_transactions(config, repositories: dblib.Repositories):
 
 
 def etl_ofsted_statistics(config, repositories: dblib.Repositories):
-    ofsted_csvrows = stream_csv_from(folderpath=config["dataset"]["ofsted_folder"], encoding="cp1252", header=True)
+    ofsted_csvrows = stream_csv_from(folderpath=config["dataset"]["ofsted_folder"], encoding="cp1252", prefix="ofsted", header=True)
     ofsted_records = [ofstedlib.transform(h, r) for (h, r) in ofsted_csvrows]
+    ofsted_records = [r for r in ofsted_records if r]
     # collect
     ofsted_education_phases = ofstedlib.get_education_phases_from(ofsted_records)
     ofsted_schools = ofstedlib.get_schools_from(ofsted_records)
@@ -77,8 +78,9 @@ def etl_ofsted_statistics(config, repositories: dblib.Repositories):
     map_postcode_ids = repositories.postcodes.get_ids()
     # store and get ids
     map_education_phase_ids = repositories.education_phases.ensure_ids_for(ofsted_education_phases)
-    map_school_ids = repositories.schools.ensure_ids_for(ofsted_schools)
-    repositories.ratings.ensure(ofsted_school_ratings, map_school_ids, map_education_phase_ids, map_postcode_ids)
+    map_school_ids = repositories.schools.ensure_ids_for(ofsted_schools, map_postcode_ids)
+    repositories.ratings.ensure(ofsted_school_ratings, map_school_ids, map_education_phase_ids)
+    repositories.commit()
 
 
 def stream_csv_from(folderpath, encoding: str = "utf-8", prefix: str = None, header: bool = False):
@@ -96,6 +98,8 @@ def stream_csv_from(folderpath, encoding: str = "utf-8", prefix: str = None, hea
                         csvheader = next(spamreader, None)
                         while not csvheader or not csvheader[0]:
                             csvheader = next(spamreader, None)
+                        if csvheader:
+                            csvheader = [h.upper() for h in csvheader]
                     for csvrow in tqdm.tqdm(spamreader, desc=filename, total=total):
                         yield csvheader, csvrow
 
