@@ -123,7 +123,7 @@ class PostcodeRepository(BaseRepository):
 
 
 class LocalityPostcodeRepository(BaseRepository):
-    def link(self, locality_postcode: Set[Tuple[str, str]], pcids: Dict[str, int], lids: Dict[str, int]) -> None:
+    def link(self, locality_postcode: Set[Tuple[str, str]], lids: Dict[str, int], pcids: Dict[str, int]) -> None:
         translated_links = set((lids.get(l, None), pcids.get(pc, None)) for (l, pc) in locality_postcode)
         with self.conn.cursor() as cursor:
             # collecting
