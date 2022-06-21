@@ -36,44 +36,55 @@ app.get('/', (req, res) => {
         "SELECT id, name FROM postgroups ORDER BY name",
         (_, results) => {
             const postgroups = results.map(r => ({ value: r.id, text: r.name }))
-            const priceRanges = [...Array(10).keys()].map(i => 100000 + (i * 50000)).map(v => ({ value: v, text: v.toLocaleString('en-US') }))
-            const data = {postgroups, priceRanges}
+            const priceRanges = [...Array(10).keys()].map(i => 100000 + (i * 50000)).map(v => ({ value: v, text: `£ ${v.toLocaleString('en-US')}` }))
+            const data = { postgroups, priceRanges }
 
-            if (req.query.mode == "price-range-and-postcode") {
+            if (req.query.mode == "price-range") {
                 db.query(`
-                    SELECT pg.name "postgroup", AVERAGE(pt.price), AVERAGE(sr.rating)
-                    FROM places_postgroups ppg
-                        INNER JOIN postgroups pg ON ppg.postgroup_id = pg.postgroup_id
-                        INNER JOIN postcodes pc ON pg.id = pc.postgroup_id
-                        INNER JOIN properties pr ON pc.id = pr.postcode_id
-                        INNER JOIN property_transactions pt ON pr.id = pt.property_id
-                        INNER JOIN schools s ON pc.id = s.postcode_id
-                        INNER JOIN school_ratings sr ON s.id = sr.school_id
-                    WHERE ppg.postgroup_id in (?)
-                    GROUP BY pg.name
+                    SELECT pg.name "postgroup", l.name "locality", AVG(pt.price), AVG(sr.rating)
+                    FROM postgroups pg
+                        INNER JOIN postcodes pc ON pc.postgroup_id = pg.id
+                        INNER JOIN localities_postcodes lpc ON lpc.postcode_id = pc.id
+                        INNER JOIN localities l on l.id = lpc.locality_id
+                        INNER JOIN properties p ON p.postcode_id = pc.id
+                        INNER JOIN property_transactions pt ON pt.property_id = p.id
+                        INNER JOIN schools s ON l.postcode_id = pc.id
+                        INNER JOIN school_ratings sr ON sr.school_id = sr.id
+                    WHERE pg.id in (?)
+                    GROUP BY pg.name, l.name "locality"
                     HAVING AVERAGE(pt.price) BETWEEN ? AND ?`
-                    [ req.query.postgroupIds, req.query.priceRangeStart, req.query.priceRangeEnd ],
+                [req.query.postgroupIds, req.query.priceRangeStart, req.query.priceRangeEnd],
                     (_, results) => {
-                        data['results'] = results
+                        data['results'] = results.map(r => ({
+                            locality: r[0],
+                            postcode: r[1],
+                            avgHomePrice: r[2],
+                            avgOfstedRating: r[3]
+                        }))
                         return res.render("index", data)
                     })
             }
             else if (req.query.mode == "place-name") {
                 db.query(`
-                    SELECT pg.name "postgroup", AVERAGE(pt.price), AVERAGE(sr.rating)
-                    FROM places p
-                        INNER JOIN places_postgroups ppg ON p.id = ppg.place_id
-                        INNER JOIN postgroups pg ON ppg.postgroup_id = pg.postgroup_id
-                        INNER JOIN postcodes pc ON pg.id = pc.postgroup_id
-                        INNER JOIN properties pr ON pc.id = pr.postcode_id
-                        INNER JOIN property_transactions pt ON pr.id = pt.property_id
-                        INNER JOIN schools s ON pc.id = s.postcode_id
-                        INNER JOIN school_ratings sr ON s.id = sr.school_id
-                    WHERE p.name LIKE (?)
-                    GROUP BY pg.name`
-                    [ `${req.query.placeName}%` ],
+                    SELECT pg.name "postgroup", l.name "locality", AVG(pt.price), AVG(sr.rating)
+                    FROM postgroups pg
+                        INNER JOIN postcodes pc ON pc.postgroup_id = pg.id
+                        INNER JOIN localities_postcodes lpc ON lpc.postcode_id = pc.id
+                        INNER JOIN localities l on l.id = lpc.locality_id
+                        INNER JOIN properties p ON p.postcode_id = pc.id
+                        INNER JOIN property_transactions pt ON pt.property_id = p.id
+                        INNER JOIN schools s ON l.postcode_id = pc.id
+                        INNER JOIN school_ratings sr ON sr.school_id = sr.id
+                    WHERE l.name LIKE ?
+                    GROUP BY pg.name, l.name "locality"`
+                [`${req.query.placeName}%`],
                     (_, results) => {
-                        data['results'] = results
+                        data['results'] = results.map(r => ({
+                            locality: r[0],
+                            postcode: r[1],
+                            avgHomePrice: r[2],
+                            avgOfstedRating: r[3]
+                        }))
                         return res.render("index", data)
                     })
             }

@@ -4,6 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <title>Find Houses near Good Schools</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css" />
     <link rel="stylesheet" href="/css/styles.css" />
 </head>
 
@@ -11,82 +12,83 @@
     <div class="container">
         <h1>Find Regions with Good Schools & Good Home Prices</h1>
         <p>Use this tool to know which regions to consider in your home search.</p>
+        <div class="row">
 
-        <table id="formInput">
-            <tr>
-                <td>
-                    <h2>Search Price Range & Postcodes</h2>
-                    <form method="get" action="/">
-                        <input type="hidden" id="mode" value="price-range-and-postcode" />
-                        <table>
-                            <tr>
-                                <td>
-                                    <div class="field">
-                                        <label>Postcode</label>
-                                        <select id="postgroupIds" multiple="True">
-                                            {{#postgroups}}
-                                            <option value="{{value}}">{{text}}</option>
-                                            {{/postgroups}}
-                                        </select>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="field">
-                                        <label>Price Range</label>
-                                        from
-                                        <select id="priceRangeStart" class="money">
-                                            {{#priceRanges}}
-                                            <option value="{{value}}">{{text}}</option>
-                                            {{/priceRanges}}
-                                        </select>
-                                        to
-                                        <select id="priceRangeEnd" class="money">
-                                            {{#priceRanges}}
-                                            <option value="{{value}}">{{text}}</option>
-                                            {{/priceRanges}}
-                                        </select>
-                                    </div>
-                                </td>
-                            </tr>
-                        </table>
-
-                        <div class="commands">
-                            <button type="submit">Search</button>
+            <div class="col-md">
+                <h2>Search Price Range & Postcodes</h2>
+                <form method="get" action="/">
+                    <input type="hidden" id="mode" value="price-range" />
+                    <div class="row">
+                        <div class="col-md">
+                            <div class="form-group">
+                                <label>Postcode</label>
+                                <select id="postgroupIds" multiple="True" class="form-control">
+                                    {{#postgroups}}
+                                    <option value="{{value}}">{{text}}</option>
+                                    {{/postgroups}}
+                                </select>
+                            </div>
                         </div>
-                    </form>
-                </td>
-                <td>
-                    <h2>Search by Place Name</h2>
-                    <form method="get" action="search">
-                        <input type="hidden" id="mode" value="place-name" />
-                        <div class="field">
-                            <label>Place Name</label>
-                            <input type="text" id="placeName">
+                        <div class="col-md">
+                            Price Range
+                            <div class="form-group">
+                                <select id="priceRangeStart" class="form-control form-money">
+                                    {{#priceRanges}}
+                                    <option value="{{value}}">{{text}}</option>
+                                    {{/priceRanges}}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>to</label>
+                                <select id="priceRangeEnd" class="form-control form-money">
+                                    {{#priceRanges}}
+                                    <option value="{{value}}">{{text}}</option>
+                                    {{/priceRanges}}
+                                </select>
+                            </div>
                         </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Search</button>
+                    </div>
+                </form>
+            </div>
 
-                        <div class="commands">
-                            <button type="submit">Search</button>
-                        </div>
-                    </form>
-                </td>
-            </tr>
-        </table>
+            <div class="col-md">
+                <h2>Search by Place Name</h2>
+                <form method="get" action="search">
+                    <input type="hidden" id="mode" value="place-name" />
+                    <div class="form-group">
+                        <label>Place Name</label>
+                        <input type="text" id="placeName" class="form-control">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Search</button>
+                    </div>
+                </form>
+            </div>
 
-        <table>
-            <tr>
-                <td>place</td>
-                <td>post group</td>
-                <td>average ofsted rating</td>
-                <td>average home price</td>
-            </tr>
-            {{#results}}
-            <tr>
-                <td>{{prace}}</td>
-                <td>{{postGroup}}</td>
-                <td>{{avgOfstedRating}}</td>
-                <td>{{avgHomePrice}}</td>
-            </tr>
-            {{/results}}
+        </div>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <td>locality</td>
+                    <td>postcode</td>
+                    <td>average home price</td>
+                    <td>average ofsted rating</td>
+                </tr>
+            </thead>
+            <tbody>
+                {{#results}}
+                <tr>
+                    <td>{{locality}}</td>
+                    <td>{{postcode}}</td>
+                    <td>{{avgHomePrice}}</td>
+                    <td>{{avgOfstedRating}}</td>
+                </tr>
+                {{/results}}
+            </tbody>
         </table>
 
 
