@@ -13,7 +13,7 @@ import ofstedlib
 def run():
     config = get_config()
     repositories = dblib.repositories(config)
-    # etl_property_transactions(config, repositories)
+    etl_property_transactions(config, repositories)
     etl_ofsted_statistics(config, repositories)
 
 
