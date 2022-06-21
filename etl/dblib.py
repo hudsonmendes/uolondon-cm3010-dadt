@@ -23,10 +23,10 @@ class Postcode:
 @dataclass(frozen=True)
 class Repositories:
     conn: mysql.MySQLConnection
-    places: "PlaceRepository"
+    localities: "LocalityRepository"
     postgroups: "PostgroupRepository"
     postcodes: "PostcodeRepository"
-    places_postgroups: "PlacePostgroupRepository"
+    localities_postgroups: "LocalityPostcodeRepository"
     property_types: "PropertyTypeRepository"
     tenures: "TenureRepository"
     properties: "PropertyRepository"
@@ -56,25 +56,25 @@ class BaseRepository(ABC):
                 yield batch
 
 
-class PlaceRepository(BaseRepository):
-    def ensure_ids_for(self, place_names: Set[str]) -> Dict[str, int]:
-        place_names = set([pn for pn in place_names if pn])
-        if not place_names:
+class LocalityRepository(BaseRepository):
+    def ensure_ids_for(self, locality_names: Set[str]) -> Dict[str, int]:
+        locality_names = set([pn for pn in locality_names if pn])
+        if not locality_names:
             return {}
         else:
             with self.conn.cursor() as cursor:
                 # collecting
-                cursor.execute("SELECT name FROM places")
-                incoming_records = set((pn,) for pn in place_names)
+                cursor.execute("SELECT name FROM localities")
+                incoming_records = set((pn,) for pn in locality_names)
                 existing_records = set(cursor)
                 missing_records = sorted(incoming_records - existing_records)
                 # inserting missing
-                for batch in self._batch_page(missing_records, "inserting(places)"):
-                    sql = "INSERT INTO places (name) VALUES (%s)"
+                for batch in self._batch_page(missing_records, "inserting(localities)"):
+                    sql = "INSERT INTO localities (name) VALUES (%s)"
                     cursor.executemany(sql, batch)
                 # mapping
-                cursor.execute("SELECT id, name FROM places")
-                return {place_name: place_id for (place_id, place_name) in cursor}
+                cursor.execute("SELECT id, name FROM localities")
+                return {ln: lid for (lid, ln) in cursor}
 
 
 class PostgroupRepository(BaseRepository):
@@ -122,17 +122,17 @@ class PostcodeRepository(BaseRepository):
             return {postcode: pc_id for (pc_id, postcode) in cursor}
 
 
-class PlacePostgroupRepository(BaseRepository):
-    def link(self, postgroup_places: Set[Tuple[str, str]], pgids: Dict[str, int], pids: Dict[str, int]) -> None:
-        translated_links = set((pgids.get(pg, None), pids.get(p, None)) for (pg, p) in postgroup_places)
+class LocalityPostcodeRepository(BaseRepository):
+    def link(self, locality_postcode: Set[Tuple[str, str]], pcids: Dict[str, int], lids: Dict[str, int]) -> None:
+        translated_links = set((lids.get(l, None), pcids.get(pc, None)) for (l, pc) in locality_postcode)
         with self.conn.cursor() as cursor:
             # collecting
-            cursor.execute("SELECT postgroup_id, place_id FROM places_postgroups")
+            cursor.execute("SELECT locality_id, postcode_id FROM localities_postcodes")
             inbound_links = set(l for l in translated_links if l[0] and l[1])
             exiting_links = set(cursor)
             missing_links = sorted(inbound_links - exiting_links)
-            for batch in self._batch_page(missing_links, "linking(places|postgroups)"):
-                sql = "INSERT INTO places_postgroups (postgroup_id, place_id) VALUES (%s, %s)"
+            for batch in self._batch_page(missing_links, "linking(locality|postcode)"):
+                sql = "INSERT INTO localities_postcodes (locality_id, postcode_id) VALUES (%s, %s)"
                 cursor.executemany(sql, batch)
 
 
@@ -312,10 +312,10 @@ def repositories(config) -> Repositories:
     conn = mysql.connect(**config["mysql"])
     return Repositories(
         conn,
-        places=PlaceRepository(conn),
+        localities=LocalityRepository(conn),
         postgroups=PostgroupRepository(conn),
         postcodes=PostcodeRepository(conn),
-        places_postgroups=PlacePostgroupRepository(conn),
+        localities_postgroups=LocalityPostcodeRepository(conn),
         property_types=PropertyTypeRepository(conn),
         tenures=TenureRepository(conn),
         properties=PropertyRepository(conn),

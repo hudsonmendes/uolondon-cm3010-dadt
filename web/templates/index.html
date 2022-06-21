@@ -16,7 +16,8 @@
             <tr>
                 <td>
                     <h2>Search Price Range & Postcodes</h2>
-                    <form method="post" action="search">
+                    <form method="get" action="/">
+                        <input type="hidden" id="mode" value="price-range-and-postcode" />
                         <table>
                             <tr>
                                 <td>
@@ -57,6 +58,7 @@
                 <td>
                     <h2>Search by Place Name</h2>
                     <form method="get" action="search">
+                        <input type="hidden" id="mode" value="place-name" />
                         <div class="field">
                             <label>Place Name</label>
                             <input type="text" id="placeName">
@@ -68,6 +70,23 @@
                     </form>
                 </td>
             </tr>
+        </table>
+
+        <table>
+            <tr>
+                <td>place</td>
+                <td>post group</td>
+                <td>average ofsted rating</td>
+                <td>average home price</td>
+            </tr>
+            {{#results}}
+            <tr>
+                <td>{{prace}}</td>
+                <td>{{postGroup}}</td>
+                <td>{{avgOfstedRating}}</td>
+                <td>{{avgHomePrice}}</td>
+            </tr>
+            {{/results}}
         </table>
 
 

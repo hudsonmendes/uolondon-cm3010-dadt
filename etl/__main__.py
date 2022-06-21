@@ -30,17 +30,18 @@ def etl_property_transactions(config, repositories: dblib.Repositories):
     pdd_csvrows = stream_csv_from(folderpath=config["dataset"]["pdd_folder"], prefix="pp-")
     pdd_postgroups = set()
     pdd_postcodes = set()
-    pdd_places = set()
+    pdd_localities = set()
     pdd_property_types = set()
     pdd_tenures = set()
     pdd_properties = set()
-    pdd_pg_places = set()
+    pdd_locality_postcodes = set()
     pdd_transactions = set()
     for _, pdd_csvrow in pdd_csvrows:
         # capture
         pdd_csvrow = pddlib.fix_critical_positions(pdd_csvrow)
-        pdd_row_places = pddlib.get_places_from(pdd_csvrow)
+        pdd_row_locality = pddlib.get_localities_from(pdd_csvrow)
         pdd_row_postcode = pddlib.get_postcode_from(pdd_csvrow)
+        pdd_row_locality_postcode = pddlib.get_locality_postcodes_from(pdd_csvrow)
         pdd_row_postgroup = pdd_row_postcode.split(" ")[0]
         pdd_row_property_type = pddlib.get_property_type_from(pdd_csvrow)
         pdd_row_tenure = pddlib.get_tenure_from(pdd_csvrow)
@@ -49,17 +50,17 @@ def etl_property_transactions(config, repositories: dblib.Repositories):
         # pile up
         pdd_postcodes.add(pdd_row_postcode)
         pdd_postgroups.add(pdd_row_postgroup)
-        [pdd_places.add(pdd_place) for pdd_place in pdd_row_places if pdd_place]
-        [pdd_pg_places.add((pdd_row_postgroup, pdd_place)) for pdd_place in pdd_row_places if pdd_place]
+        pdd_localities.add(pdd_row_locality)
+        pdd_locality_postcodes.add(pdd_row_locality_postcode)
         pdd_property_types.add(pdd_row_property_type)
         pdd_tenures.add(pdd_row_tenure)
         pdd_properties.add(pdd_row_property)
         pdd_transactions.add(pdd_row_transaction)
     # store and get ids
-    map_place_ids = repositories.places.ensure_ids_for(pdd_places)
+    map_locality_ids = repositories.localities.ensure_ids_for(pdd_localities)
     map_postgroups_ids = repositories.postgroups.ensure_ids_for(pdd_postgroups)
-    repositories.places_postgroups.link(pdd_pg_places, map_postgroups_ids, map_place_ids)
     map_postcodes_ids = repositories.postcodes.ensure_ids_for(pdd_postcodes, map_postgroups_ids)
+    repositories.localities_postgroups.link(pdd_locality_postcodes, map_locality_ids, map_postcodes_ids)
     map_propert_type_ids = repositories.property_types.ensure_ids_for(pdd_property_types)
     map_property_ids = repositories.properties.ensure_ids_for(pdd_properties, map_postcodes_ids, map_propert_type_ids)
     map_tenure_ids = repositories.tenures.ensure_ids_for(pdd_tenures)

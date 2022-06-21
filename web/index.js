@@ -31,14 +31,54 @@ app.set('view engine', 'html');
 app.set('views', `${basePath}/templates`);
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.get('/', (_, res) => {
+app.get('/', (req, res) => {
     db.query(
         "SELECT id, name FROM postgroups ORDER BY name",
         (_, results) => {
             const postgroups = results.map(r => ({ value: r.id, text: r.name }))
             const priceRanges = [...Array(10).keys()].map(i => 100000 + (i * 50000)).map(v => ({ value: v, text: v.toLocaleString('en-US') }))
             const data = {postgroups, priceRanges}
-            return res.render("index", data)
+
+            if (req.query.mode == "price-range-and-postcode") {
+                db.query(`
+                    SELECT pg.name "postgroup", AVERAGE(pt.price), AVERAGE(sr.rating)
+                    FROM places_postgroups ppg
+                        INNER JOIN postgroups pg ON ppg.postgroup_id = pg.postgroup_id
+                        INNER JOIN postcodes pc ON pg.id = pc.postgroup_id
+                        INNER JOIN properties pr ON pc.id = pr.postcode_id
+                        INNER JOIN property_transactions pt ON pr.id = pt.property_id
+                        INNER JOIN schools s ON pc.id = s.postcode_id
+                        INNER JOIN school_ratings sr ON s.id = sr.school_id
+                    WHERE ppg.postgroup_id in (?)
+                    GROUP BY pg.name
+                    HAVING AVERAGE(pt.price) BETWEEN ? AND ?`
+                    [ req.query.postgroupIds, req.query.priceRangeStart, req.query.priceRangeEnd ],
+                    (_, results) => {
+                        data['results'] = results
+                        return res.render("index", data)
+                    })
+            }
+            else if (req.query.mode == "place-name") {
+                db.query(`
+                    SELECT pg.name "postgroup", AVERAGE(pt.price), AVERAGE(sr.rating)
+                    FROM places p
+                        INNER JOIN places_postgroups ppg ON p.id = ppg.place_id
+                        INNER JOIN postgroups pg ON ppg.postgroup_id = pg.postgroup_id
+                        INNER JOIN postcodes pc ON pg.id = pc.postgroup_id
+                        INNER JOIN properties pr ON pc.id = pr.postcode_id
+                        INNER JOIN property_transactions pt ON pr.id = pt.property_id
+                        INNER JOIN schools s ON pc.id = s.postcode_id
+                        INNER JOIN school_ratings sr ON s.id = sr.school_id
+                    WHERE p.name LIKE (?)
+                    GROUP BY pg.name`
+                    [ `${req.query.placeName}%` ],
+                    (_, results) => {
+                        data['results'] = results
+                        return res.render("index", data)
+                    })
+            }
+            else
+                return res.render("index", data)
         })
 });
 

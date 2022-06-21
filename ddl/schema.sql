@@ -20,9 +20,9 @@ DROP TABLE IF EXISTS `postcodes`;
 
 DROP TABLE IF EXISTS `postgroups`;
 
-DROP TABLE IF EXISTS `places`;
+DROP TABLE IF EXISTS `localities`;
 
-CREATE TABLE `places` (
+CREATE TABLE `localities` (
     id INT NOT NULL AUTO_INCREMENT,
     name VARCHAR(120) NOT NULL,
     CONSTRAINT pk_places PRIMARY KEY (`id`),
@@ -36,14 +36,6 @@ CREATE TABLE `postgroups` (
     UNIQUE INDEX ix_postgroups_name (`name`)
 );
 
-CREATE TABLE `places_postgroups` (
-    place_id INT NOT NULL,
-    postgroup_id INT NOT NULL,
-    CONSTRAINT pk_places_postgroups PRIMARY KEY (`place_id`, `postgroup_id`),
-    CONSTRAINT fk_places_postgroups_place_id FOREIGN KEY (`place_id`) REFERENCES `places` (`id`),
-    CONSTRAINT fk_places_postgroups_postgroup_id FOREIGN KEY (`postgroup_id`) REFERENCES `postgroups` (`id`)
-);
-
 CREATE TABLE `postcodes` (
     id INT NOT NULL AUTO_INCREMENT,
     postgroup_id INT NOT NULL,
@@ -51,6 +43,14 @@ CREATE TABLE `postcodes` (
     CONSTRAINT pk_postcodes PRIMARY KEY (`id`),
     CONSTRAINT fk_postcodes_postgroup_id FOREIGN KEY (`postgroup_id`) REFERENCES `postgroups` (`id`),
     UNIQUE INDEX ix_postgroups_name (`name`)
+);
+
+CREATE TABLE `localities_postcodes` (
+    place_id INT NOT NULL,
+    postcode_id INT NOT NULL,
+    CONSTRAINT pk_places_postgroups PRIMARY KEY (`place_id`, `postcode_id`),
+    CONSTRAINT fk_places_postgroups_place_id FOREIGN KEY (`place_id`) REFERENCES `localities` (`id`),
+    CONSTRAINT fk_places_postgroups_postgroup_id FOREIGN KEY (`postcode_id`) REFERENCES `postcodes` (`id`)
 );
 
 CREATE TABLE `property_types` (

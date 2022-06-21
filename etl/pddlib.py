@@ -1,4 +1,5 @@
 # https://www.gov.uk/guidance/about-the-price-paid-data#explanations-of-column-headers-in-the-ppd
+from typing import Tuple
 import dateparser
 
 
@@ -38,6 +39,9 @@ def fix_critical_positions(csvrow):
     postcode = csvrow[header["postcode"]]
     csvrow[header["postcode"]] = postcode if postcode else ""
 
+    locality = csvrow[header["locality"]]
+    csvrow[header["locality"]] = locality if locality else csvrow[header["district"]]
+
     property_type = csvrow[header["property_type"]]
     csvrow[header["property_type"]] = property_type_names[property_type if property_type else "O"]
 
@@ -59,20 +63,15 @@ def fix_critical_positions(csvrow):
     return csvrow
 
 
-def get_places_from(csvrow):
-    return set(
-        [
-            csvrow[header["locality"]],
-            csvrow[header["town_or_city"]],
-            csvrow[header["district"]],
-            csvrow[header["county"]],
-        ]
-    )
+def get_localities_from(csvrow):
+    return csvrow[header["locality"]]
 
 
 def get_postcode_from(csvrow) -> str:
     return csvrow[header["postcode"]]
 
+def get_locality_postcodes_from(csvrow) -> Tuple[str, str]:
+    return (csvrow[header["locality"]], csvrow[header["postcode"]])
 
 def get_property_type_from(csvrow):
     return csvrow[header["property_type"]]
