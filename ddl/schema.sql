@@ -46,10 +46,10 @@ CREATE TABLE `postcodes` (
 );
 
 CREATE TABLE `localities_postcodes` (
-    place_id INT NOT NULL,
+    locality_id INT NOT NULL,
     postcode_id INT NOT NULL,
-    CONSTRAINT pk_places_postgroups PRIMARY KEY (`place_id`, `postcode_id`),
-    CONSTRAINT fk_places_postgroups_place_id FOREIGN KEY (`place_id`) REFERENCES `localities` (`id`),
+    CONSTRAINT pk_places_postgroups PRIMARY KEY (`locality_id`, `postcode_id`),
+    CONSTRAINT fk_places_postgroups_place_id FOREIGN KEY (`locality_id`) REFERENCES `localities` (`id`),
     CONSTRAINT fk_places_postgroups_postgroup_id FOREIGN KEY (`postcode_id`) REFERENCES `postcodes` (`id`)
 );
 
