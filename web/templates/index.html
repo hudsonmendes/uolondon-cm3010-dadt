@@ -17,14 +17,14 @@
             <div class="col-md">
                 <h2>Search Price Range & Postcodes</h2>
                 <form method="get" action="/">
-                    <input type="hidden" id="mode" value="price-range" />
+                    <input type="hidden" id="mode" name="mode" value="price-range" />
                     <div class="row">
                         <div class="col-md">
                             <div class="form-group">
                                 <label>Postcode</label>
-                                <select id="postgroupIds" multiple="True" class="form-control">
+                                <select id="postgroupIds" name="postgroupIds" multiple="True" class="form-control">
                                     {{#postgroups}}
-                                    <option value="{{value}}">{{text}}</option>
+                                    <option value="{{value}}" {{#selected}}selected="selected"{{/selected}}>{{text}}</option>
                                     {{/postgroups}}
                                 </select>
                             </div>
@@ -32,18 +32,18 @@
                         <div class="col-md">
                             Price Range
                             <div class="form-group">
-                                <select id="priceRangeStart" class="form-control form-money">
-                                    {{#priceRanges}}
-                                    <option value="{{value}}">{{text}}</option>
-                                    {{/priceRanges}}
+                                <select id="priceRangeStart" name="priceRangeStart" class="form-control form-money">
+                                    {{#priceRangesStart}}
+                                    <option value="{{value}}" {{#selected}}selected="selected"{{/selected}}>{{text}}</option>
+                                    {{/priceRangesStart}}
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label>to</label>
-                                <select id="priceRangeEnd" class="form-control form-money">
-                                    {{#priceRanges}}
-                                    <option value="{{value}}">{{text}}</option>
-                                    {{/priceRanges}}
+                                <select id="priceRangeEnd" name="priceRangeEnd" class="form-control form-money">
+                                    {{#priceRangesEnd}}
+                                    <option value="{{value}}" {{#selected}}selected="selected"{{/selected}}>{{text}}</option>
+                                    {{/priceRangesEnd}}
                                 </select>
                             </div>
                         </div>
@@ -56,11 +56,11 @@
 
             <div class="col-md">
                 <h2>Search by Place Name</h2>
-                <form method="get" action="search">
-                    <input type="hidden" id="mode" value="place-name" />
+                <form method="get" action="">
+                    <input type="hidden" id="mode" name="mode" value="place-name" />
                     <div class="form-group">
                         <label>Place Name</label>
-                        <input type="text" id="placeName" class="form-control">
+                        <input type="text" id="placeName" name="placeName" class="form-control" value="{{query.placeName}}">
                     </div>
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">Search</button>
@@ -75,8 +75,8 @@
                 <tr>
                     <td>locality</td>
                     <td>postcode</td>
-                    <td>average home price</td>
-                    <td>average ofsted rating</td>
+                    <td class="text-end">average home price</td>
+                    <td class="text-end">average ofsted rating</td>
                 </tr>
             </thead>
             <tbody>
@@ -84,8 +84,15 @@
                 <tr>
                     <td>{{locality}}</td>
                     <td>{{postcode}}</td>
-                    <td>{{avgHomePrice}}</td>
-                    <td>{{avgOfstedRating}}</td>
+                    <td class="text-end">{{avgHomePrice}}</td>
+                    <td class="text-end">
+                        {{avgOfstedRating}}
+                        {{#avgOfstedOutstanding}}<span class="badge bg-success">Outstanding</span>{{/avgOfstedOutstanding}}
+                        {{#avgOfstedVeryGood}}<span class="badge bg-primary">Very Good</span>{{/avgOfstedVeryGood}}
+                        {{#avgOfstedGood}}<span class="badge bg-info">Good</span>{{/avgOfstedGood}}
+                        {{#avgOfstedNeedsImprovement}}<span class="badge bg-warning">Needs Improveent</span>{{/avgOfstedNeedsImprovement}}
+                        {{#avgOfstedInadequate}}<span class="badge bg-danger">Inadequate</span>{{/avgOfstedInadequate}}
+                    </td>
                 </tr>
                 {{/results}}
             </tbody>
