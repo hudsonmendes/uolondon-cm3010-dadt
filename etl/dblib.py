@@ -31,6 +31,9 @@ class Repositories:
     tenures: "TenureRepository"
     properties: "PropertyRepository"
     transactions: "TransactionRepository"
+    education_phases: "EducationPhaseRepository"
+    schools: "SchoolRepository"
+    ratings: "RatingRepository"
 
     def commit(self):
         self.conn.commit()
@@ -61,7 +64,7 @@ class PlaceRepository(BaseRepository):
         else:
             with self.conn.cursor() as cursor:
                 # collecting
-                cursor.execute("SELECT name FROM places ORDER BY name")
+                cursor.execute("SELECT name FROM places")
                 incoming_records = set((pn,) for pn in place_names)
                 existing_records = set(cursor)
                 missing_records = sorted(incoming_records - existing_records)
@@ -70,7 +73,7 @@ class PlaceRepository(BaseRepository):
                     sql = "INSERT INTO places (name) VALUES (%s)"
                     cursor.executemany(sql, batch)
                 # mapping
-                cursor.execute("SELECT id, name FROM places ORDER BY name")
+                cursor.execute("SELECT id, name FROM places")
                 return {place_name: place_id for (place_id, place_name) in cursor}
 
 
@@ -82,7 +85,7 @@ class PostgroupRepository(BaseRepository):
         else:
             with self.conn.cursor() as cursor:
                 # collecting
-                cursor.execute("SELECT name FROM postgroups ORDER BY name")
+                cursor.execute("SELECT name FROM postgroups")
                 incoming_records = set((pg,) for pg in postgroups)
                 existing_records = set(cursor)
                 missing_records = sorted(incoming_records - existing_records)
@@ -90,7 +93,7 @@ class PostgroupRepository(BaseRepository):
                     sql = "INSERT INTO postgroups (name) VALUES (%s)"
                     cursor.executemany(sql, batch)
                 # mapping
-                cursor.execute("SELECT id, name FROM postgroups ORDER BY name")
+                cursor.execute("SELECT id, name FROM postgroups")
                 return {postgroup: pg_id for (pg_id, postgroup) in cursor}
 
 
@@ -110,9 +113,13 @@ class PostcodeRepository(BaseRepository):
                 for batch in self._batch_page(missing_records, "inserting(postcodes)"):
                     sql = "INSERT INTO postcodes (postgroup_id, name) VALUES (%s, %s)"
                     cursor.executemany(sql, batch)
-                # mapping
-                cursor.execute("SELECT id, name FROM postcodes ORDER BY name")
-                return {postcode: pc_id for (pc_id, postcode) in cursor}
+            return self.get_ids()
+
+    def get_ids(self) -> Dict[str, int]:
+        # mapping
+        with self.conn.cursor() as cursor:
+            cursor.execute("SELECT id, name FROM postcodes")
+            return {postcode: pc_id for (pc_id, postcode) in cursor}
 
 
 class PlacePostgroupRepository(BaseRepository):
@@ -137,7 +144,7 @@ class PropertyTypeRepository(BaseRepository):
         else:
             with self.conn.cursor() as cursor:
                 # collecting
-                cursor.execute("SELECT name FROM property_types ORDER BY name")
+                cursor.execute("SELECT name FROM property_types")
                 inbound_records = set((pt,) for pt in property_type_names)
                 existing_records = set(cursor)
                 missing_records = sorted(inbound_records - existing_records)
@@ -145,7 +152,7 @@ class PropertyTypeRepository(BaseRepository):
                     sql = "INSERT INTO property_types (name) VALUES (%s)"
                     cursor.executemany(sql, batch)
                 # mapping
-                cursor.execute("SELECT id, name FROM property_types ORDER BY name")
+                cursor.execute("SELECT id, name FROM property_types")
                 return {pt_name: pt_id for (pt_id, pt_name) in cursor}
         return {}
 
@@ -158,7 +165,7 @@ class TenureRepository(BaseRepository):
         else:
             with self.conn.cursor() as cursor:
                 # collecting
-                cursor.execute("SELECT name FROM tenures ORDER BY name")
+                cursor.execute("SELECT name FROM tenures")
                 inbound_records = set((pn,) for pn in place_names)
                 existing_records = set(cursor)
                 missing_records = sorted(inbound_records - existing_records)
@@ -166,8 +173,28 @@ class TenureRepository(BaseRepository):
                     sql = "INSERT INTO tenures (name) VALUES (%s)"
                     cursor.executemany(sql, batch)
                 # mapping
-                cursor.execute("SELECT id, name FROM tenures ORDER BY name")
+                cursor.execute("SELECT id, name FROM tenures")
                 return {t_name: t_id for (t_id, t_name) in cursor}
+
+
+class EducationPhaseRepository(BaseRepository):
+    def ensure_ids_for(self, education_phases: Set[str]) -> Dict[str, int]:
+        education_phases = set([ep for ep in education_phases if ep])
+        if not education_phases:
+            return {}
+        else:
+            with self.conn.cursor() as cursor:
+                # collecting
+                cursor.execute("SELECT name FROM education_phases")
+                inbound_records = set((ep,) for ep in education_phases)
+                existing_records = set(cursor)
+                missing_records = sorted(inbound_records - existing_records)
+                for batch in self._batch_page(missing_records, "inserting(ep)"):
+                    sql = "INSERT INTO education_phases (name) VALUES (%s)"
+                    cursor.executemany(sql, batch)
+                # mapping
+                cursor.execute("SELECT id, name FROM education_phases")
+                return {ep_name: ep_id for (ep_id, ep_name) in cursor}
 
 
 class PropertyRepository(BaseRepository):
@@ -192,12 +219,12 @@ class PropertyRepository(BaseRepository):
             # mapping
             cursor.execute(
                 """
-            SELECT p.id, pc.name `postcode`, pt.name `property_type`,
-                   number_or_name, building_ref, street_name
-            FROM properties p
-                INNER JOIN postcodes pc ON p.postcode_id = pc.id
-                INNER JOIN property_types pt ON p.property_type_id = pt.id
-            """
+                SELECT p.id, pc.name `postcode`, pt.name `property_type`,
+                    number_or_name, building_ref, street_name
+                FROM properties p
+                    INNER JOIN postcodes pc ON p.postcode_id = pc.id
+                    INNER JOIN property_types pt ON p.property_type_id = pt.id
+                """
             )
             return {
                 (postcode, property_type, number_or_name, building_ref, street_name): pid
@@ -230,6 +257,58 @@ class TransactionRepository(BaseRepository):
                 cursor.executemany(sql, batch)
 
 
+class SchoolRepository(BaseRepository):
+    def ensure_ids_for(
+        self,
+        properties: Set[Tuple[str, str, str, str, str]],
+        pcids: Dict[str, int],
+        ptids: Dict[str, int],
+    ) -> Dict[Tuple[str, str, str, str, str], int]:
+        records = set((pcids.get(pc, None), ptids.get(pt, None), non, br, sn) for (pc, pt, non, br, sn) in properties)
+        with self.conn.cursor() as cursor:
+            # inserting missing
+            sql = """
+            INSERT IGNORE INTO schools
+            (postcode_id, name)
+            VALUES
+            (%s, %s)
+            """
+            inbound_records = [r for r in records if r[0] and r[1]]
+            for batch in self._batch_page(inbound_records, "inserting(schools)"):
+                cursor.executemany(sql, batch)
+            # mapping
+            cursor.execute(
+                """
+                SELECT s.id, pc.name `postcode`, s.name
+                FROM schools s INNER JOIN postcodes pc ON s.postcode_id = pc.id
+                """
+            )
+            return {(postcode, name): sid for (sid, postcode, name) in cursor}
+
+
+class RatingRepository(BaseRepository):
+    def ensure(
+        self,
+        ratings: Set[str, str, str, float],
+        sids: Dict[Tuple[str, str], int],
+        epids: Dict[str, int],
+    ):
+        records = set(
+            (sids.get((pc, name), None), epids.get(ep, None), rating, ts) for (pc, name, ep, rating, ts) in ratings
+        )
+        with self.conn.cursor() as cursor:
+            # inserting missing
+            sql = """
+            INSERT IGNORE INTO school_ratings
+            (school_id, education_phase_id, rating, ts)
+            VALUES
+            (%s, %s, %s, %s)
+            """
+            inbound_records = [r for r in records if r[0] and r[1]]
+            for batch in self._batch_page(inbound_records, "inserting(ratings)"):
+                cursor.executemany(sql, batch)
+
+
 def repositories(config) -> Repositories:
     conn = mysql.connect(**config["mysql"])
     return Repositories(
@@ -242,4 +321,7 @@ def repositories(config) -> Repositories:
         tenures=TenureRepository(conn),
         properties=PropertyRepository(conn),
         transactions=TransactionRepository(conn),
+        education_phases=EducationPhaseRepository(conn),
+        schools=SchoolRepository(conn),
+        ratings=RatingRepository(conn),
     )

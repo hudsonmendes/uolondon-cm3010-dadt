@@ -13,7 +13,7 @@ import ofstedlib
 def run():
     config = get_config()
     repositories = dblib.repositories(config)
-    etl_property_transactions(config, repositories)
+    # etl_property_transactions(config, repositories)
     etl_ofsted_statistics(config, repositories)
 
 
@@ -68,10 +68,17 @@ def etl_property_transactions(config, repositories: dblib.Repositories):
 
 
 def etl_ofsted_statistics(config, repositories: dblib.Repositories):
-    pass
-    # ofsted_csvrows = stream_csv_from(folderpath=config["dataset"]["ofsted_folder"], encoding="cp1252", header=True)
-    # ofsted_records = [ofstedlib.transform(h, r) for (h, r) in ofsted_csvrows]
-    # assert ofsted_records
+    ofsted_csvrows = stream_csv_from(folderpath=config["dataset"]["ofsted_folder"], encoding="cp1252", header=True)
+    ofsted_records = [ofstedlib.transform(h, r) for (h, r) in ofsted_csvrows]
+    # collect
+    ofsted_education_phases = ofstedlib.get_education_phases_from(ofsted_records)
+    ofsted_schools = ofstedlib.get_schools_from(ofsted_records)
+    ofsted_school_ratings = ofstedlib.get_school_ratings_from(ofsted_records)
+    map_postcode_ids = repositories.postcodes.get_ids()
+    # store and get ids
+    map_education_phase_ids = repositories.education_phases.ensure_ids_for(ofsted_education_phases)
+    map_school_ids = repositories.schools.ensure_ids_for(ofsted_schools)
+    repositories.ratings.ensure(ofsted_school_ratings, map_school_ids, map_education_phase_ids, map_postcode_ids)
 
 
 def stream_csv_from(folderpath, encoding: str = "utf-8", prefix: str = None, header: bool = False):
